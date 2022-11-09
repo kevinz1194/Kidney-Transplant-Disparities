@@ -1,0 +1,80 @@
+---
+title: "Analysis of Recipients Data"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r, include=F, warning=F, echo=F, message=F, comment=NA}
+rm(list=ls()); gc()
+setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
+if (!require('pacman')) {install.packages('pacman')}
+library(pacman)
+pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, cmprsk)
+knitr::opts_chunk$set(echo = FALSE)
+
+load('./recipients.RData')
+df_recipients$race <- droplevels(df_recipients$race)
+
+
+df_recipients_top20 <- subset(df_recipients, df_recipients$percentile_epts <= 20)
+df_recipients_not_top20 <- subset(df_recipients, df_recipients$percentile_epts > 20)
+
+
+df_recipients_top20 <- df_recipients_top20 %>%
+  filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
+df_recipients_top20$race_tx <- factor(df_recipients_top20$race_tx , 
+                                      levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
+```
+
+
+-----------------
+
+### KM curve among adult recipients with EPTS < 20 by race (Figure 3)
+
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
+df_recipients_top20$death_tx <- as.numeric(df_recipients_top20$death_tx)
+fit_top20 <- survival::survfit(Surv(time / 365.25, death_tx) ~ race_tx, data = df_recipients_top20)
+
+ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
+  conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
+  legend = 'right',
+  ylim = c(0.9,1), xlim = c(0,6), pval.coord=c(0, 0.95),
+  risk.table = T,        
+  risk.table.col = 'strata',
+  font.size = 16,
+  legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
+  ggtheme = theme_bw(),
+  palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
+
+rm(fit_top20, df_recipients_top20)
+```
+
+
+-----------------
+
+### KM curve among adult recipients with EPTS > 20 by race (Figure 4)
+
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=10, fig.width=10}
+df_recipients_not_top20 <- df_recipients_not_top20 %>%
+  filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
+df_recipients_not_top20$race_tx <- factor(df_recipients_not_top20$race_tx , 
+                                      levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
+
+
+df_recipients_not_top20$death_tx <- as.numeric(df_recipients_not_top20$death_tx)
+fit_not_top20 <- survival::survfit(Surv(time / 365.25, death_tx) ~ race_tx, data = df_recipients_not_top20)
+
+ggsurvplot(fit_not_top20, data = df_recipients_not_top20, size = 1.2, censor = F,
+  conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
+  legend = 'right',
+  ylim = c(0.7,1), xlim = c(0,6), pval.coord=c(0, 0.95),
+  risk.table = T,        
+  risk.table.col = 'strata',
+  font.size = 16,
+  legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
+  ggtheme = theme_bw(),
+  palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
+
+rm(fit_not_top20, df_recipients_not_top20)
+```
