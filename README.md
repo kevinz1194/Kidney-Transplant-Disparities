@@ -2,7 +2,21 @@
 
 Code files corresponding to the 'Association of Race and Ethnicity with Priority for Deceased Donor Kidney Transplant'. <br />
 
-Files should be run in this order:
+All files are written and tested using R 4.2.1. Files should be run in this order:
 
-### 1. candidates.Rmd (R 4.2.1)
-Sets up dataset of all 2015--2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/wn3buk04/epts_mapping_table_2020.pdf
+### 1. candidates.R
+Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
+
+EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/wn3buk04/epts_mapping_table_2020.pdf.
+
+
+### 2. recipients.R
+Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data, merged with the previous candidates dataset.
+
+
+### 3. candidates_analysis.Rmd
+Runs tabulations, multivariable regressions, and survival analysis for EPTS scores. Runs competing risks analysis with KDPI score.
+
+
+### 4. recipients_analysis.Rmd
+Runs tabulations, multivariable regressions, and survival analysis for EPTS scores. 
