@@ -27,7 +27,7 @@ rm(list=ls()); gc()
 setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
-pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, cmprsk, ggsurvfit)
+pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, tidycmprsk, ggsurvfit)
 knitr::opts_chunk$set(echo = FALSE)
 
 load('./candidates.RData')
@@ -424,7 +424,7 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
 
 #### THESE CALCULATIONS EACH TOOK 20+ MINUTES (NON-COMPUTING CLUSTER) #### 
 ### Plot of Death 
-death_cuminc <- cmprsk::cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
+death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
          outcome = '1',
          size = 1.2) + 
@@ -440,7 +440,7 @@ ggcuminc(death_cuminc,
 
 
 ### Plot of Top 20 Transplant
-top20_cuminc <- cmprsk::cuminc(Surv(time / 365.25, status_top20) ~ race, data = df_cand_kipa_cmp) 
+top20_cuminc <- cuminc(Surv(time / 365.25, status_top20) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(top20_cuminc, 
          outcome = '1',
          size = 1.2) + 
