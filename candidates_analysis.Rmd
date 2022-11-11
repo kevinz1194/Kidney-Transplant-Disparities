@@ -496,10 +496,4 @@ ggcuminc(top20_cuminc_age,
         axis.title.x = element_text(size = 12, margin = margin(t=5)), 
         axis.text.y = element_text(size = 12, margin = margin(r=5)),
         plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
-
-
-
-
-crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>% 
-  tbl_regression(exp = T)
 ```
