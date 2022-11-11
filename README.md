@@ -2,7 +2,7 @@
 
 Code files corresponding to the 'Association of Race and Ethnicity with Priority for Deceased Donor Kidney Transplant'. <br />
 
-All files are written and tested using R 4.2.1. Files should be run in this order:
+All files are written and tested using R 4.2.2. Files should be run in this order:
 
 ### 1. candidates.R
 Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
