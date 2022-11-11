@@ -5,21 +5,22 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates (Line 43) -->
-<!-- Average EPTS by age group and race (Line 79) -->
-<!-- Average EPTS by age group and race (Line 123)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 153)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 191) -->
+<!-- All adult deceased donor candidates (Line 44) -->
+<!-- Average EPTS by age group and race (Line 80) -->
+<!-- Average EPTS by age group and race (Line 124)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 154)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 192) -->
 <!-- -->
-<!-- Average KDPI by age group and race (Line 228) -->
-<!-- Average KDPI by age group and race (Line 271)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 300) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 334) -->
+<!-- Average KDPI by age group and race (Line 229) -->
+<!-- Average KDPI by age group and race (Line 272)  -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 301) -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 335) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 369) -->
-<!-- Logistic regression for KDPI (Line 381)  -->
+<!-- Logistic regression for EPTS (Line 370) -->
+<!-- Logistic regression for KDPI (Line 382)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 398) -->
+<!-- Survival plots for competing risks (Line 399) -->
+<!-- Adjusted results for age (Line 463) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -396,10 +397,10 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 ----------------------
 
 ### Survival plots for competing risks
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
-  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code) %>%
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group) %>%
   
   mutate(
     status_death = case_when(
@@ -419,7 +420,7 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
          status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
   
-  select(time, race, status_death, status_top20)
+  select(time, race, status_death, status_top20, age_group)
 
 
 #### THESE CALCULATIONS EACH TOOK 20+ MINUTES (NON-COMPUTING CLUSTER) #### 
@@ -453,4 +454,52 @@ ggcuminc(top20_cuminc,
         axis.title.x = element_text(size = 12, margin = margin(t=5)), 
         axis.text.y = element_text(size = 12, margin = margin(r=5)),
         plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
+```
+
+----------------------
+
+### Adjusted results for age
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9}
+### Plot of Top 20 Transplant, Adjusted by Age Group
+top20_cuminc_age <- cuminc(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) 
+
+ggcuminc(top20_cuminc_age, 
+         outcome = '1',
+         size = 1.2,
+         linetype_aes =  T) +
+  labs(x = 'Time (years)', y = 'Cumulative incidence') +
+  scale_color_manual(values = c(rep('#999999', 3),
+                                rep('#E69F00', 3),
+                                rep('#009E73', 3),
+                                rep('#F0E442', 3),
+                                rep('#0072B2', 3),
+                                rep('#CC79A7', 3),
+                                rep('#D55E00', 3)),
+                     labels = c('White or Caucasian (18-24)', 'Black or AA (18-24)', 'Hispanic/Latino (18-24)',
+                                'White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
+                                'White or Caucasian (30-39)', 'Black or AA (30-39)', 'Hispanic/Latino (30-39)',
+                                'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)',
+                                'White or Caucasian (50-59)', 'Black or AA (50-59)', 'Hispanic/Latino (50-59)',
+                                'White or Caucasian (60-69)', 'Black or AA (60-69)', 'Hispanic/Latino (60-69)',
+                                'White or Caucasian (>70)', 'Black or AA (>70)', 'Hispanic/Latino (>70)')) +
+  scale_linetype_manual(values = rep(c('solid', 'dotted', 'dashed'), 7),
+                        labels = c('White or Caucasian (18-24)', 'Black or AA (18-24)', 'Hispanic/Latino (18-24)',
+                                   'White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
+                                   'White or Caucasian (30-39)', 'Black or AA (30-39)', 'Hispanic/Latino (30-39)',
+                                   'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)',
+                                   'White or Caucasian (50-59)', 'Black or AA (50-59)', 'Hispanic/Latino (50-59)',
+                                   'White or Caucasian (60-69)', 'Black or AA (60-69)', 'Hispanic/Latino (60-69)',
+                                   'White or Caucasian (>70)', 'Black or AA (>70)', 'Hispanic/Latino (>70)')) +
+  ggtitle('Cumulative Incidence of Top 20% KDPI with Death and Delisting as Competing Risks, by Age and Race') +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        axis.title.x = element_text(size = 12, margin = margin(t=5)), 
+        axis.text.y = element_text(size = 12, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
+
+
+
+
+crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>% 
+  tbl_regression(exp = T)
 ```
