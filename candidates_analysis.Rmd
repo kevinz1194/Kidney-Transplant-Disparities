@@ -397,7 +397,7 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 ----------------------
 
 ### Survival plots for competing risks
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=15, fig.height=15}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
   select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group) %>%
