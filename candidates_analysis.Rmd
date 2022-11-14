@@ -461,7 +461,11 @@ ggcuminc(top20_cuminc,
 ### Adjusted results for age
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=14, fig.height=14}
 ### Plot of Top 20 Transplant, Adjusted by Age Group
-top20_cuminc_age <- cuminc(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) 
+df_cand_kipa_cmp_facet <- df_cand_kipa_cmp %>%
+  filter(age_group == '25-29' | age_group == '30-39' | age_group == '40-49')
+
+top20_cuminc_age <- cuminc(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_facet) 
+
 
 ggcuminc(top20_cuminc_age, 
          outcome = '1',
@@ -470,32 +474,21 @@ ggcuminc(top20_cuminc_age,
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
   scale_color_manual(values = c(rep('#999999', 3),
                                 rep('#E69F00', 3),
-                                rep('#009E73', 3),
-                                rep('#F0E442', 3),
-                                rep('#0072B2', 3),
-                                rep('#CC79A7', 3),
-                                rep('#D55E00', 3)),
-                     labels = c('White or Caucasian (18-24)', 'Black or AA (18-24)', 'Hispanic/Latino (18-24)',
-                                'White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
+                                rep('#009E73', 3)),
+                     labels = c('White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
                                 'White or Caucasian (30-39)', 'Black or AA (30-39)', 'Hispanic/Latino (30-39)',
-                                'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)',
-                                'White or Caucasian (50-59)', 'Black or AA (50-59)', 'Hispanic/Latino (50-59)',
-                                'White or Caucasian (60-69)', 'Black or AA (60-69)', 'Hispanic/Latino (60-69)',
-                                'White or Caucasian (>70)', 'Black or AA (>70)', 'Hispanic/Latino (>70)')) +
-  scale_linetype_manual(values = rep(c('solid', 'dotted', 'dashed'), 7),
-                        labels = c('White or Caucasian (18-24)', 'Black or AA (18-24)', 'Hispanic/Latino (18-24)',
-                                   'White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
+                                'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)')) +
+  scale_linetype_manual(values = rep(c('solid', 'dotted', 'dashed'), 3),
+                        labels = c('White or Caucasian (25-29)', 'Black or AA (25-29)', 'Hispanic/Latino (25-29)',
                                    'White or Caucasian (30-39)', 'Black or AA (30-39)', 'Hispanic/Latino (30-39)',
-                                   'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)',
-                                   'White or Caucasian (50-59)', 'Black or AA (50-59)', 'Hispanic/Latino (50-59)',
-                                   'White or Caucasian (60-69)', 'Black or AA (60-69)', 'Hispanic/Latino (60-69)',
-                                   'White or Caucasian (>70)', 'Black or AA (>70)', 'Hispanic/Latino (>70)')) +
-  ggtitle('Cumulative Incidence of Top 20% KDPI with Death and Delisting as Competing Risks, by Age and Race') +
+                                   'White or Caucasian (40-49)', 'Black or AA (40-49)', 'Hispanic/Latino (40-49)')) +
+  ggtitle('Cumulative Incidence of Top 20% KDPI with Death and Delisting as Competing Risks, by Selected Age and Race') +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-        axis.text.y = element_text(size = 12, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.title.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        legend.text = element_text(size = 14))    
         
 
 #### ROUGHLY TRIPLES RUNTIME ####
