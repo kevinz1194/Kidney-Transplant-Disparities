@@ -17,6 +17,8 @@ Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_
 ### 3. candidates_analysis.Rmd
 Runs tabulations and multivariable regressions for EPTS and KDPI scores in the candidates dataset. Runs competing risks analysis with KDPI score.
 
+Updated 11/15/22: Figures are changed.
+
 
 ### 4. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. 
