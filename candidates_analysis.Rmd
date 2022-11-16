@@ -20,8 +20,8 @@ output:
 <!-- Logistic regression for KDPI (Line 384)  -->
 <!-- -->
 <!-- Survival plots for competing risks (Line 402) -->
-<!-- Overall results for top 20% EPTS only (Line 466) -->
-<!-- Adjusted results for age (Line ) -->
+<!-- Overall results for top 20% EPTS only (Line 468) -->
+<!-- Adjusted results for age (Line 494) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -399,7 +399,7 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 ----------------------
 
 ### Survival plots for competing risks
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
   select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
@@ -438,9 +438,10 @@ ggcuminc(death_cuminc,
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-        axis.text.y = element_text(size = 12, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 14, hjust=0.5)) 
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.title.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        legend.text = element_text(size = 14))  
 
 
 ### Plot of Top 20% Transplant
@@ -455,15 +456,16 @@ ggcuminc(top20_cuminc,
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-        axis.text.y = element_text(size = 12, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.title.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        legend.text = element_text(size = 14))    
 ```
 
 ----------------------
 
 ### Overall results for top 20% EPTS only
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
 
 ### Plot of Top 20% Transplant
@@ -479,9 +481,10 @@ ggcuminc(top20_cuminc,
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-        axis.text.y = element_text(size = 12, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 14, hjust=0.5))   
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.title.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        legend.text = element_text(size = 14))   
 
 ```
 
