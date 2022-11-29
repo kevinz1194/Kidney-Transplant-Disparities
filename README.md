@@ -17,6 +17,8 @@ Runs tabulations and multivariable regressions for EPTS and KDPI scores in the c
 
 Updated 11/15/22: Figures are changed.
 
+Updated 11/29/22: Incorrect labelling is changed.
+
 
 ### 4. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. 
