@@ -137,9 +137,9 @@ df_cand_kipa_table2 <- df_cand_kipa %>%
   pivot_wider(names_from = race, values_from = result)
 
 
-colnames(df_cand_kipa_table2) <- c('Age Group', 'White or Caucasian', 
-                                    'American_Indian', 'Asian', 'Black or AA', 
-                                    'Hispanic', 'Other', 'Pacific_Islander')
+colnames(df_cand_kipa_table2) <- c('Age Group', 'White or Caucasian', 'Black or AA',
+                                    'Hispanic', 'Asian', 'American_Indian',   
+                                    'Pacific_Islander', 'Other')
   
 
 kable(df_cand_kipa_table2, align=c('l', rep('c', 7))) %>%
@@ -208,9 +208,9 @@ df_cand_kipa_table3 <- df_cand_kipa %>%
   pivot_wider(names_from = race, values_from = result)
 
 
-colnames(df_cand_kipa_table3) <- c('Age Group', 'White or Caucasian', 
-                                    'American_Indian', 'Asian', 'Black or AA', 
-                                    'Hispanic', 'Other', 'Pacific_Islander')
+colnames(df_cand_kipa_table3) <- c('Age Group', 'White or Caucasian', 'Black or AA',
+                                    'Hispanic', 'Asian', 'American_Indian',   
+                                    'Pacific_Islander', 'Other')
   
 
 kable(df_cand_kipa_table3, align=c('l', rep('c', 7))) %>%
@@ -285,9 +285,9 @@ df_cand_kipa_kdpi2 <- df_cand_kipa %>%
   pivot_wider(names_from = race, values_from = result)
 
 
-colnames(df_cand_kipa_kdpi2) <- c('Age Group', 'White or Caucasian', 
-                                    'American_Indian', 'Asian', 'Black or AA', 
-                                    'Hispanic', 'Other', 'Pacific_Islander')
+colnames(df_cand_kipa_kdpi2) <- c('Age Group', 'White or Caucasian', 'Black or AA',
+                                    'Hispanic', 'Asian', 'American_Indian',   
+                                    'Pacific_Islander', 'Other')
   
 
 kable(df_cand_kipa_kdpi2, align=c('l', rep('c', 7))) %>%
@@ -347,9 +347,9 @@ df_cand_kipa_kdpi4 <- df_cand_kipa %>%
   pivot_wider(names_from = race, values_from = result)
 
 
-colnames(df_cand_kipa_kdpi4) <- c('Age Group', 'White or Caucasian', 
-                                    'American_Indian', 'Asian', 'Black or AA', 
-                                    'Hispanic', 'Other', 'Pacific_Islander')
+colnames(df_cand_kipa_kdpi4) <- c('Age Group', 'White or Caucasian', 'Black or AA',
+                                    'Hispanic', 'Asian', 'American_Indian',   
+                                    'Pacific_Islander', 'Other')
   
 
 kable(df_cand_kipa_kdpi4, align=c('l', rep('c', 7))) %>%
