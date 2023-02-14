@@ -33,7 +33,7 @@ pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr,
                tidycmprsk, ggsurvfit, cowplot)
 knitr::opts_chunk$set(echo = FALSE)
 
-load('./candidates.RData')
+load('./candidates_v2.RData')
 df_cand_kipa$race <- droplevels(df_cand_kipa$race)
 df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian',
                                                         'American_Indian', 'Pacific_Islander', 'Other'))
@@ -45,33 +45,53 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 ### All adult deceased donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
-  select(PERS_ID, race, diabetes, age, dialysis, dialysis_years_prior, time, 
-         previous_TX, preemptive_listing, percentile_epts, top_percentile_epts,
+  select(race, diabetes, age, time, previous_TX, 
+         preemptive_listing, dialysis_time_at_list, dialysis_time_at_transplant,
+         percentile_epts, top_percentile_epts,
          kdpi, top20_kdpi)
 
 
-tbl_summary(df_cand_kipa_table1[,-1], by = race,
+tbl_summary(df_cand_kipa_table1, by = race,
             label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
-                        dialysis_years_prior ~ 'Years on Dialysis Pre-Transplant',
                         time  ~ 'Time in Days', 
                         previous_TX ~ 'Previous Transplant',
-                        dialysis ~ 'On Dialysis',
-                        preemptive_listing ~ 'Preemptive Listing',
+                        preemptive_listing ~ 'Listed with Dialysis',                        
+                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing',
+                        dialysis_time_at_transplant ~ 'Years on Dialysis Pre-Transplant',
                         percentile_epts ~ 'Percentile EPTS Score',
                         top_percentile_epts  ~ 'Top 20 Percentile EPTS',
                         kdpi ~ 'Percentile KDPI Score',
                         top20_kdpi ~ 'Top 20 Percentile KDPI'),
             value = list(diabetes ~ '1',
-                         previous_TX ~ '1',
-                         dialysis ~ '1',
                          preemptive_listing ~ '1',
+                         previous_TX ~ '1',
                          top_percentile_epts ~ '1',
                          top20_kdpi ~ '1'),
             statistic = list(all_continuous() ~ '{mean} ({sd})')) %>% 
   add_overall() %>%
   bold_labels() %>%
   modify_caption("**Table 1. All adult deceased donor candidates from 2015 to 2020**") 
+```
+
+---------------------
+
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
+df_cand_kipa_table1 <- df_cand_kipa_table1 %>%
+  filter(top_percentile_epts == '1') %>%
+  select(race, preemptive_listing, dialysis_time_at_list)
+  
+tbl_summary(df_cand_kipa_table1, by = race,
+            label = list(preemptive_listing ~ 'Listed with Dialysis',                        
+                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
+            value = list(preemptive_listing ~ '1'),
+            statistic = list(all_continuous() ~ '{median}')) %>% 
+  bold_labels() %>%
+  modify_caption("**Median Dialysis Time and Preemptive Listing Rate in Top 20% EPTS**") 
+
+
+
+
 
 rm(df_cand_kipa_table1)
 ```
@@ -436,7 +456,7 @@ ggcuminc(death_cuminc,
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'),
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
-  theme_bw() + 
+  theme_bw() + add_risktable() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
@@ -465,7 +485,7 @@ ggcuminc(top20_cuminc,
 ----------------------
 
 ### Overall results for top 20% EPTS only
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=12, fig.height=12}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
 
 ### Plot of Top 20% Transplant
@@ -600,4 +620,7 @@ cowplot::plot_grid(plot_title, plot_facet, ncol = 1, rel_heights = c(0.1, 1))
 #### ROUGHLY TRIPLES RUNTIME #### 
 # crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>%
 #   tbl_regression(exp = T)
+# 
+# 
+# results1 <- crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp)
 ```
