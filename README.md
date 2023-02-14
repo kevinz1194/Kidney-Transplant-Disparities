@@ -7,6 +7,8 @@ Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and exc
 
 EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/wn3buk04/epts_mapping_table_2020.pdf.
 
+Updated 2/14/23: Different dialysis time variables are created.
+
 
 ### 2. recipients.R
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data, merged with the previous candidates dataset.
@@ -18,6 +20,8 @@ Runs tabulations and multivariable regressions for EPTS and KDPI scores in the c
 Updated 11/15/22: Figures are changed.
 
 Updated 11/29/22: Incorrect labelling is changed.
+
+Updated 2/14/23: Changed to reflect updated variables.
 
 
 ### 4. recipients_analysis.Rmd
