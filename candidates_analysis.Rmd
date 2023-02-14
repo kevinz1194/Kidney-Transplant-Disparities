@@ -445,7 +445,7 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
   select(time, race, status_death, status_top20, age_group, top_percentile_epts)
 
 
-#### THESE CALCULATIONS EACH TOOK 20+ MINUTES (NON-COMPUTING CLUSTER) #### 
+
 ### Plot of Death 
 death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
@@ -460,7 +460,7 @@ ggcuminc(death_cuminc,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        plot.title = element_text(face = 'bold', size = 15, hjust=0.5),
         legend.text = element_text(size = 14))  
 
 
@@ -478,7 +478,7 @@ ggcuminc(top20_cuminc,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        plot.title = element_text(face = 'bold', size = 15, hjust=0.5),
         legend.text = element_text(size = 14))    
 ```
 
