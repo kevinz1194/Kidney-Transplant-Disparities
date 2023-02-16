@@ -341,7 +341,7 @@ colnames(df_recipients) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 
                              'time_fu', 'transplant_time', 'graft_failure_dt',
                              'death_with_function', 'graft_failure', 'graft_survival', 
                              'listing_dt', 'death_dt', 'previous_TX', 'dialysis_dt', 'preemptive_listing', 
-                             'transplant_dt', 'age_tx', 'sex_tx', 'age_group', 'race', 'diabetes_cat', 
+                             'transplant_dt', 'age_tx', 'age_group', 'sex_tx', 'race', 'diabetes_cat', 
                              'dialysis_time_at_transplant', 'living_donor', 'kdpi', 'top20_kdpi')
 
 
