@@ -50,7 +50,7 @@ df_cand_kipa_table1 <- df_cand_kipa %>%
          preemptive_listing, dialysis_time_at_list, top_percentile_epts)
 
 
-tbl_summary(df_cand_kipa_table1, by = race,
+tbl_summary(df_cand_kipa_table1[ ,c(1:8)], by = race,
             label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
                         sex ~ 'Gender',
@@ -494,7 +494,7 @@ ggcuminc(top20_cuminc,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        plot.title = element_text(face = 'bold', size = 12, hjust=0.5),
         legend.text = element_text(size = 14))   
 
 ```
