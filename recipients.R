@@ -333,7 +333,7 @@ df_recipients <- df_recipients[ ,c('PX_ID', 'PERS_ID.x', 'raw_epts', 'percentile
                                    'previous_TX_KI', 'dialysis_dt', 'preemptive_listing_KI', 
                                    'transplant_date_tx', 
                                    'age_tx', 'age_group', 'sex_tx', 'race_tx', 'diabetes_cat_tx',  
-                                   'dialysis_time_at_transplant', 'living_donor')]
+                                   'dialysis_time_at_transplant', 'living_donor', 'kdpi', 'top20_kdpi')]
 
 
 colnames(df_recipients) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 'top_percentile_epts', 
@@ -342,7 +342,7 @@ colnames(df_recipients) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 
                              'death_with_function', 'graft_failure', 'graft_survival', 
                              'listing_dt', 'death_dt', 'previous_TX', 'dialysis_dt', 'preemptive_listing', 
                              'transplant_dt', 'age_tx', 'sex_tx', 'age_group', 'race', 'diabetes_cat', 
-                             'dialysis_time_at_transplant', 'living_donor')
+                             'dialysis_time_at_transplant', 'living_donor', 'kdpi', 'top20_kdpi')
 
 
 
