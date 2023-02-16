@@ -13,6 +13,8 @@ Updated 2/16/23: Different dialysis time variables are created. Additional gende
 ### 2. recipients.R
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data, merged with the previous candidates dataset.
 
+Updated 2/16/23: Different dialysis time variables are created. Additional gender variable is added.
+
 
 ### 3. candidates_analysis.Rmd
 Runs tabulations and multivariable regressions for EPTS and KDPI scores in the candidates dataset. Runs competing risks analysis with KDPI score.
@@ -26,3 +28,5 @@ Updated 2/16/23: Changed to reflect updated variables. Labelling is updated.
 
 ### 4. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. 
+
+Updated 2/16/23: Changed to reflect updated variables. Labelling is updated.
