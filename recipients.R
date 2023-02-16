@@ -1,11 +1,12 @@
 ################################################
 # Code for work with recipient data
 #
-# 1. Set up TX_KI dataset and clean (Line 22)
-# 2. Merge with candidate dataset (Line 104)
-# 3. Calculate EPTS score and finalize (Line 153)
+# 1. Set up TX_KI dataset and clean (Line 23)
+# 2. Merge with candidate dataset (Line 110)
+# 3. Calculate EPTS score and finalize (Line 183)
+# 4. Create new post-transplant variables (Line )
 #
-# Last Modified: K. Zhang (11/9/22)
+# Last Modified: K. Zhang (2/16/23)
 #
 ################################################
 rm(list=ls()); gc()
@@ -24,12 +25,13 @@ pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
 df_tx_ki <- haven::read_sas('./tx_ki.sas7bdat')
 df_tx_ki <- df_tx_ki %>%
   filter(as.Date(CAN_LISTING_DT) >= '2015-01-01' & as.Date(CAN_LISTING_DT) <= '2020-12-31') %>%
-  filter(DON_TY != 'L' & ORG_TY== 'KI') %>%
+  filter(ORG_TY== 'KI') %>%
   filter(CAN_AGE_AT_LISTING >= 18) %>%
   
-  select(PX_ID, PERS_ID, CAN_RACE, CAN_LISTING_DT,
+  select(PX_ID, PERS_ID, CAN_RACE, CAN_GENDER, CAN_LISTING_DT,
          CAN_PREV_TX, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, CAN_DIAB_TY,
-         TFL_DEATH_DT, TFL_LAFUDATE, REC_PRETX_DIAL, REC_DIAL_DT, REC_AGE_AT_TX, REC_TX_DT) %>%
+         TFL_DEATH_DT, TFL_LAFUDATE, REC_PRETX_DIAL, REC_DIAL_DT, REC_AGE_AT_TX, REC_TX_DT,
+         TFL_GRAFT_DT, DON_TY) %>%
   
   filter(CAN_DIAB_TY != '998')
 
@@ -49,6 +51,10 @@ df_tx_ki <- expss::drop_all_labels(df_tx_ki)
 ### Clean up variables
 df_tx_ki <- df_tx_ki %>%
   mutate(
+    living_donor = case_when(
+      DON_TY == 'L' ~ 1,
+      TRUE ~ 0),
+    
     previous_TX_KI = factor(CAN_PREV_TX, levels=c(0,1)),
     
     dialysis_dt = as.Date(REC_DIAL_DT),
@@ -57,11 +63,17 @@ df_tx_ki <- df_tx_ki %>%
       REC_PRETX_DIAL == 'N' ~ '1',
       TRUE ~ '0'),
     
+    sex_tx = case_when(
+      CAN_GENDER == 'M' ~ 'Male',
+      CAN_GENDER == 'F' ~ 'Female'),
+    
     age_tx = as.numeric(REC_AGE_AT_TX),
     
-    death_date_tx = as.Date(pmin(PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, TFL_DEATH_DT, na.rm = T)),
+    death_date_tx = as.Date(TFL_DEATH_DT),
     
     transplant_date_tx = as.Date(REC_TX_DT),
+    
+    graft_failure_dt = as.Date(TFL_GRAFT_DT),
     
     followup_dt = as.Date(TFL_LAFUDATE),
     
@@ -83,35 +95,33 @@ df_tx_ki <- df_tx_ki %>%
       CAN_DIAB_TY == '2' | CAN_DIAB_TY == '3' | CAN_DIAB_TY == '4' | CAN_DIAB_TY == '5' ~ '1',
       TRUE ~ '0')) %>%
   
-  
-  mutate(death_tx = case_when(
-    !is.na(death_date_tx) ~ '1',
-    TRUE ~ '0')) %>%
-  
-  select(-c(CAN_RACE, CAN_LISTING_DT, CAN_DIAB_TY, CAN_PREV_TX, REC_PRETX_DIAL, 
+  select(-c(CAN_GENDER, CAN_RACE, CAN_LISTING_DT, CAN_DIAB_TY, CAN_PREV_TX, REC_PRETX_DIAL, 
             REC_AGE_AT_TX, REC_DIAL_DT, REC_TX_DT,
-            PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, TFL_DEATH_DT, TFL_LAFUDATE))
+            PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, TFL_DEATH_DT, TFL_LAFUDATE, TFL_GRAFT_DT, DON_TY))
 df_tx_ki$race_tx <- factor(df_tx_ki$race_tx, levels=c('White', 'American_Indian', 'Arab_Middle_East',
                                                       'Asian', 'Black_AA', 'Hispanic', 'Indian_SubContinent',
                                                       'Other', 'Pacific_Islander', 'Unknown'))
 
 
 
-
 ################################################
 # 2. Merge with candidate dataset and finalize
 ################################################
-load('./candidates.RData')
+load('./candidates_v2.RData')
 
 df_recipients <- merge(df_tx_ki, df_cand_kipa, by = 'PX_ID', all.x = T, all.y = F)
 rm(df_cand_kipa, df_tx_ki)
 
 
 df_recipients <- df_recipients %>%
-  select(-c(PERS_ID.y, listing_date, time, age, age_group, raw_epts, percentile_epts, 
-            preemptive_listing, dialysis_years_prior, transplant, transplant_date,
+  select(-c(PERS_ID.y, listing_date, time, age, age_group, sex, raw_epts, percentile_epts, 
+            dialysis_time_at_transplant, dialysis_time_at_list,
+            preemptive_transplant, preemptive_listing,
+            transplant, transplant_date,
             removal_code, removal_date, death_after_TX, race, diabetes,
             death_date)) %>%
+  
+  mutate(age_tx = as.numeric(age_tx)) %>%
   
   mutate(age_group = case_when(
     age_tx <= 24 ~ '18-24',
@@ -123,27 +133,47 @@ df_recipients <- df_recipients %>%
     TRUE ~ '>70'))
 
 
+######################################################
 ### Confirm previous variables are consistent
-table(df_recipients$previous_TX, df_recipients$previous_TX_KI)
-df_recipients$previous_TX <- NULL
-
-table(df_recipients$death, df_recipients$death_tx)
-df_recipients$death <- NULL
+# table(df_recipients$previous_TX, df_recipients$previous_TX_KI)
+# df_recipients$previous_TX <- NULL
+# 
+# table(df_recipients$death, df_recipients$death_tx)
+# df_recipients$death <- NULL
+######################################################
 
 
 ### Dialysis years prior to transplant
-df_recipients$dialysis_years_prior <- NA
-df_recipients$dialysis_years_prior <- 
-  as.numeric(difftime(df_recipients$dialysis_dt, df_recipients$transplant_date_tx, units = 'weeks')) / 52.25
-df_recipients$dialysis_years_prior <- -round(df_recipients$dialysis_years_prior, digits = 1)
+df_recipients <- df_recipients%>% 
+  mutate(
+    dialysis_time_at_transplant = case_when(
+      is.na(dialysis_dt) | is.na(transplant_date_tx) ~ 0,
+      TRUE ~ as.numeric(difftime(dialysis_dt, transplant_date_tx, units = 'weeks')) / 52.25))
+df_recipients$dialysis_time_at_transplant <- -round(df_recipients$dialysis_time_at_transplant, digits = 1)
 
 
-
-### Time
+### Time to death with functioning graft
 df_recipients <- df_recipients %>% 
-  mutate(time = case_when(
-    death_tx == '1' ~ as.numeric(as.Date(death_date_tx) - as.Date(listing_dt_tx), units = 'days'),
-    TRUE ~ as.numeric(as.Date(followup_dt) - as.Date(listing_dt_tx), units = 'days')))
+  mutate(time_to_death_function = 
+           case_when(!is.na(death_date_tx) == '1' ~ 
+                       as.numeric(as.Date(death_date_tx) - as.Date(listing_dt_tx), units = 'days')))
+
+### Time to graft failure
+df_recipients$time_graft_failure <- 
+  as.numeric(df_recipients$graft_failure_dt - df_recipients$listing_dt_tx, units = 'days')
+
+
+### Graft survival time 
+df_recipients <- df_recipients %>% 
+  mutate(time_graft_survival = 
+           case_when(
+             !is.na(death_date_tx) | !is.na(graft_failure_dt) ~
+               as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - listing_dt_tx, 
+                          units = 'days')))
+
+
+### Time to followup
+df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$listing_dt_tx, units = 'days')
 
 
 
@@ -156,8 +186,8 @@ df_recipients <- df_recipients %>%
            0.047*pmax(age_tx - 25, 0) -
            0.015*(as.numeric(diabetes_cat_tx))*pmax(age_tx - 25, 0) +
            0.398*(as.numeric(previous_TX_KI)) - 0.237*(as.numeric(diabetes_cat_tx))*((as.numeric(previous_TX_KI))) +
-           0.315*log(dialysis_years_prior + 1)- 0.099*(diabetes_cat_tx=='1')*log(dialysis_years_prior + 1) +
-           0.130*(dialysis_years_prior==0) - 0.348*(dialysis_years_prior==0) +  
+           0.315*log(dialysis_time_at_transplant + 1)- 0.099*(diabetes_cat_tx=='1')*log(dialysis_time_at_transplant + 1) +
+           0.130*(dialysis_time_at_transplant==0) - 0.348*(dialysis_time_at_transplant==0) +  
            1.262*(as.numeric(diabetes_cat_tx))
   )
 
@@ -275,21 +305,46 @@ df_recipients$top_percentile_epts = factor(df_recipients$top_percentile_epts, le
   
 
 
+################################################
+# 4. Create new post-transplant variables
+################################################
+### Death with functioning graft (kidney)
+df_recipients <- df_recipients %>%
+  mutate(death_with_function = 
+           case_when(!is.na(death_date_tx) & is.na(graft_failure_dt) ~ 1,
+                     TRUE ~ 0),
+         
+         graft_failure =
+           case_when(!is.na(graft_failure_dt) ~ 1,
+                     TRUE ~ 0),
+         
+         graft_survival = 
+           case_when(
+             !is.na(graft_failure_dt) | !is.na(death_date_tx) ~ 1,
+             TRUE ~ 0))
+
+
 
 df_recipients <- df_recipients[ ,c('PX_ID', 'PERS_ID.x', 'raw_epts', 'percentile_epts', 'top_percentile_epts',
-                                   'time', 'listing_dt_tx', 'death_tx', 'death_date_tx',
+                                   'time_to_death_function', 'time_graft_survival', 'time_graft_failure',
+                                   'time_fu','transplant_time', 'graft_failure_dt',
+                                   'death_with_function', 'graft_failure', 'graft_survival', 
+                                   'listing_dt_tx', 'death_date_tx',
                                    'previous_TX_KI', 'dialysis_dt', 'preemptive_listing_KI', 
                                    'transplant_date_tx', 
-                                   'age_tx', 'age_group', 'race_tx', 'diabetes_cat_tx',  
-                                   'dialysis_years_prior')]
-colnames(df_recipients) <- c('PX_ID', 'PERS_ID.x', 'raw_epts', 'percentile_epts', 'top_percentile_epts',
-                             'time', 'listing_dt_tx', 'death_tx', 'death_date_tx',
-                             'previous_TX_KI', 'dialysis_dt', 'preemptive_listing_KI', 
-                             'transplant_date_tx', 
-                             'age_tx', 'age_group', 'race_tx', 'diabetes_cat_tx',  
-                             'dialysis_years_prior')
+                                   'age_tx', 'age_group', 'sex_tx', 'race_tx', 'diabetes_cat_tx',  
+                                   'dialysis_time_at_transplant', 'living_donor')]
+
+
+colnames(df_recipients) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 'top_percentile_epts', 
+                             'time_to_death_function', 'time_graft_survival', 'time_graft_failure', 
+                             'time_fu', 'transplant_time', 'graft_failure_dt',
+                             'death_with_function', 'graft_failure', 'graft_survival', 
+                             'listing_dt', 'death_dt', 'previous_TX', 'dialysis_dt', 'preemptive_listing', 
+                             'transplant_dt', 'age_tx', 'sex_tx', 'age_group', 'race', 'diabetes_cat', 
+                             'dialysis_time_at_transplant', 'living_donor')
 
 
 
-save(df_recipients, file = './recipients.RData')
-write.csv(df_recipients, file = './recipients.csv')
+save(df_recipients, file = './recipients_v2.RData')
+write.csv(df_recipients, file = './recipients_v2.csv')
