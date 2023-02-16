@@ -107,7 +107,7 @@ ggcuminc(death_function_cuminc,
         axis.text.x = element_text(size = 14),
         axis.title.y = element_text(size = 14, margin = margin(l=5)),
         axis.text.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 13, hjust=0.5),
+        plot.title = element_text(face = 'bold', size = 12, hjust=0.5),
         legend.text = element_text(size = 14)) 
 ```
 
@@ -134,7 +134,7 @@ ggcuminc(death_function_cuminc_adj,
         axis.text.x = element_text(size = 14),
         axis.title.y = element_text(size = 14, margin = margin(l=5)),
         axis.text.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 11, hjust=0.5),
+        plot.title = element_text(face = 'bold', size = 9, hjust=0.5),
         legend.text = element_text(size = 14)) 
 ```
 
