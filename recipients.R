@@ -3,8 +3,8 @@
 #
 # 1. Set up TX_KI dataset and clean (Line 23)
 # 2. Merge with candidate dataset (Line 110)
-# 3. Calculate EPTS score and finalize (Line 183)
-# 4. Create new post-transplant variables (Line )
+# 3. Calculate EPTS score and finalize (Line 187)
+# 4. Create new post-transplant variables (Line 315)
 #
 # Last Modified: K. Zhang (2/16/23)
 #
@@ -141,6 +141,10 @@ df_recipients <- df_recipients %>%
 # table(df_recipients$death, df_recipients$death_tx)
 # df_recipients$death <- NULL
 ######################################################
+
+### Transplant time
+df_recipients$transplant_time <- as.numeric(difftime(df_recipients$transplant_date_tx, 
+                                                     df_recipients$listing_dt_tx, units = 'weeks')) / 52.25
 
 
 ### Dialysis years prior to transplant
@@ -343,6 +347,7 @@ colnames(df_recipients) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 
                              'listing_dt', 'death_dt', 'previous_TX', 'dialysis_dt', 'preemptive_listing', 
                              'transplant_dt', 'age_tx', 'age_group', 'sex_tx', 'race', 'diabetes_cat', 
                              'dialysis_time_at_transplant', 'living_donor', 'kdpi', 'top20_kdpi')
+
 
 
 
