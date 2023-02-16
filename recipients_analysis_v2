@@ -4,9 +4,10 @@ output:
   html_document
 ---
 
-<!-- Cumulative incidence of death with functioning graft, graft failure and living donor competing risks (Line 43) -->
-<!-- Cumulative incidence of death with functioning graft, graft failure and living donor competing risks, adjusted for KDPI (Line 82) -->
-<!-- Graft failure with patient alive outcome (Line 109)  -->
+<!-- All adult deceased recipients (Line 46) -->
+<!-- Cumulative incidence of death with functioning graft, graft failure and living donor competing risks (Line 79) -->
+<!-- Cumulative incidence of death with functioning graft, graft failure and living donor competing risks, adjusted for KDPI (Line 118) -->
+<!-- Graft failure with patient alive outcome (Line 145)  -->
 
 
 
@@ -21,8 +22,11 @@ knitr::opts_chunk$set(echo = FALSE)
 load('./recipients_v2.RData')
 load('./candidates_v2.RData')
 
-df_cand_kipa <- df_cand_kipa %>% select(PX_ID, top20_kdpi)
-df_recipients <- merge(df_recipients, df_cand_kipa, by = 'PX_ID', all.x = T, all.y = F)
+df_recipients$kdpi <- NULL
+df_recipients$top20_kdpi <- NULL
+
+df_cand_kipa <- df_cand_kipa %>% select(PX_ID, PERS_ID, kdpi, top20_kdpi)
+df_recipients <- merge(df_recipients, df_cand_kipa, by=c('PX_ID', 'PERS_ID'), all.x=T, all.y=F)
 
 df_recipients$race <- droplevels(df_recipients$race)
 
@@ -35,6 +39,38 @@ df_recipients_top20 <- df_recipients_top20 %>%
 df_recipients_top20$race <- factor(df_recipients_top20$race , 
                                       levels=c('White', 'Black_AA', 'Hispanic'))
 ```
+
+-----------------
+
+### All adult deceased recipients (Supplementary Table 1)
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
+df_recipients_table1 <- df_recipients %>%
+  filter(living_donor == '0') %>%
+  select(race, diabetes_cat, age_tx, sex_tx, previous_TX, 
+         preemptive_listing, transplant_time, kdpi, top20_kdpi)
+
+
+tbl_summary(df_recipients_table1, by = race,
+            label = list(diabetes_cat ~ 'Diabetic', 
+                        age_tx ~ 'Age at Transplant',
+                        sex_tx ~ 'Gender',
+                        transplant_time  ~ 'Waitlist Time', 
+                        previous_TX ~ 'Previous Transplant',
+                        preemptive_listing ~ 'Pre-Emptive Listing',                        
+                        kdpi ~ 'KDPI Score',
+                        top20_kdpi ~ 'Top20 KDPI'),
+            value = list(diabetes_cat ~ '1',
+                         preemptive_listing ~ '1',
+                         previous_TX ~ '1'),
+            statistic = list(all_continuous() ~ '{mean} ({sd})')) %>% 
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Table 1. All adult deceased recipients from 2015 to 2020**") 
+
+
+rm(df_recipients_table1)
+```
+
 
 
 -----------------
