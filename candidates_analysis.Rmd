@@ -6,22 +6,23 @@ output:
 ---
 
 <!-- All adult deceased donor candidates (Line 46) -->
-<!-- Average EPTS by age group and race (Line 82) -->
-<!-- Average EPTS by age group and race (Line 127)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 156)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 194) -->
+<!-- Median dialysis time and preemptive listing in Top EPTS (Line 73) -->
+<!-- Average EPTS by age group and race (Line 93) -->
+<!-- Average EPTS by age group and race (Line 137)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 167)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 205) -->
 <!-- -->
-<!-- Average KDPI by age group and race (Line 231) -->
-<!-- Average KDPI by age group and race (Line 274)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 303) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 337) -->
+<!-- Average KDPI by age group and race (Line 242) -->
+<!-- Average KDPI by age group and race (Line 285)  -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 314) -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 348) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 371) -->
-<!-- Logistic regression for KDPI (Line 384)  -->
+<!-- Logistic regression for EPTS (Line 382) -->
+<!-- Logistic regression for KDPI (Line 395)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 402) -->
-<!-- Overall results for top 20% EPTS only (Line 468) -->
-<!-- Adjusted results for age (Line 494) -->
+<!-- Survival plots for competing risks (Line 413) -->
+<!-- Overall results for top 20% EPTS only (Line 479) -->
+<!-- Adjusted results for age (Line 505) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -45,29 +46,21 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 ### All adult deceased donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
-  select(race, diabetes, age, time, previous_TX, 
-         preemptive_listing, dialysis_time_at_list, dialysis_time_at_transplant,
-         percentile_epts, top_percentile_epts,
-         kdpi, top20_kdpi)
+  select(race, diabetes, age, sex, time, previous_TX, 
+         preemptive_listing, dialysis_time_at_list, top_percentile_epts)
 
 
 tbl_summary(df_cand_kipa_table1, by = race,
             label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
+                        sex ~ 'Gender',
                         time  ~ 'Time in Days', 
                         previous_TX ~ 'Previous Transplant',
-                        preemptive_listing ~ 'Listed with Dialysis',                        
-                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing',
-                        dialysis_time_at_transplant ~ 'Years on Dialysis Pre-Transplant',
-                        percentile_epts ~ 'Percentile EPTS Score',
-                        top_percentile_epts  ~ 'Top 20 Percentile EPTS',
-                        kdpi ~ 'Percentile KDPI Score',
-                        top20_kdpi ~ 'Top 20 Percentile KDPI'),
+                        preemptive_listing ~ 'Pre-Emptive Listing',                        
+                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
             value = list(diabetes ~ '1',
                          preemptive_listing ~ '1',
-                         previous_TX ~ '1',
-                         top_percentile_epts ~ '1',
-                         top20_kdpi ~ '1'),
+                         previous_TX ~ '1'),
             statistic = list(all_continuous() ~ '{mean} ({sd})')) %>% 
   add_overall() %>%
   bold_labels() %>%
@@ -76,21 +69,19 @@ tbl_summary(df_cand_kipa_table1, by = race,
 
 ---------------------
 
+### Median dialysis time and preemptive listing in Top EPTS
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa_table1 %>%
   filter(top_percentile_epts == '1') %>%
   select(race, preemptive_listing, dialysis_time_at_list)
   
 tbl_summary(df_cand_kipa_table1, by = race,
-            label = list(preemptive_listing ~ 'Listed with Dialysis',                        
+            label = list(preemptive_listing ~ 'Pre-Emptive Listing',                        
                         dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
             value = list(preemptive_listing ~ '1'),
             statistic = list(all_continuous() ~ '{median}')) %>% 
   bold_labels() %>%
   modify_caption("**Median Dialysis Time and Preemptive Listing Rate in Top 20% EPTS**") 
-
-
-
 
 
 rm(df_cand_kipa_table1)
@@ -445,7 +436,7 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
   select(time, race, status_death, status_top20, age_group, top_percentile_epts)
 
 
-
+#### THESE CALCULATIONS EACH TOOK 20+ MINUTES (NON-COMPUTING CLUSTER) #### 
 ### Plot of Death 
 death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
