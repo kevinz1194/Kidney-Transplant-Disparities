@@ -4,9 +4,9 @@
 # 1. Set up candidate dataset (Line 23)
 # 2. Add EPTS scores (Line 91)
 # 3. Clean variables (Line 220)
-# 4. Add kipa scores and finalize candidate dataset (Line 360)
+# 4. Add kipa scores and finalize candidate dataset (Line 364)
 #
-# Last Modified: K. Zhang (2/14/23)
+# Last Modified: K. Zhang (2/16/23)
 #
 ################################################
 rm(list=ls()); gc()
@@ -218,7 +218,7 @@ df_cand_kipa$top_percentile_epts = factor(df_cand_kipa$top_percentile_epts, leve
 # 3. Clean variables
 ################################################
 df_cand_kipa <- df_cand_kipa %>%
-  select(PX_ID, PERS_ID, DONOR_ID,
+  select(PX_ID, PERS_ID, DONOR_ID, CAN_GENDER,
          CAN_RACE, CAN_LISTING_DT, CAN_AGE_AT_LISTING, CAN_PREV_TX, PERS_NEXTTX,
          CAN_REM_CD, CAN_REM_DT, CAN_LAST_ACT_STAT_DT, CAN_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT,
          diabetes_cat, dialysis,
@@ -240,7 +240,11 @@ df_cand_kipa <- df_cand_kipa %>%
     CAN_RACE == '512' ~ 'Indian_SubContinent',
     CAN_RACE == '1024' ~ 'Unknown',
     CAN_RACE == '2000' ~ 'Hispanic',
-    TRUE ~ 'Other'),
+    TRUE ~ 'Other')) %>%
+  
+  mutate(sex = case_when(
+    CAN_GENDER == 'M' ~ 'Male',
+    CAN_GENDER == 'F' ~ 'Female'),
     
     diabetes = factor(diabetes_cat, levels=c(0,1)),
     dialysis = factor(dialysis, levels=c(0,1)),
@@ -393,7 +397,7 @@ df_cand_kipa <- df_cand_kipa[ ,c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_ept
                                  'death', 'death_date', 'death_after_TX',
                                  'transplant', 'transplant_date', 'transplant_time',
                                  'censored', 'CAN_REM_CD', 'CAN_REM_DT', 'previous_TX',  
-                                 'age', 'age_group', 'race', 'diabetes', 'dialysis',
+                                 'age', 'age_group', 'race', 'sex', 'diabetes', 'dialysis',
                                  'dialysis_time_at_list', 'dialysis_time_at_transplant', 
                                  'preemptive_transplant', 'preemptive_listing')]
 
@@ -403,7 +407,7 @@ colnames(df_cand_kipa) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', '
                             'death', 'death_date', 'death_after_TX',
                             'transplant', 'transplant_date', 'transplant_time',
                             'censored', 'removal_code', 'removal_date', 'previous_TX',  
-                            'age', 'age_group', 'race', 'diabetes', 'dialysis',
+                            'age', 'age_group', 'race', 'sex', 'diabetes', 'dialysis',
                             'dialysis_time_at_list', 'dialysis_time_at_transplant', 
                             'preemptive_transplant', 'preemptive_listing')
 
