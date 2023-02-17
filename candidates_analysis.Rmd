@@ -46,7 +46,7 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 ### All adult deceased donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
-  select(race, diabetes, age, sex, time, previous_TX, 
+  select(race, diabetes, age, sex, previous_TX, 
          preemptive_listing, dialysis_time_at_list, top_percentile_epts)
 
 
@@ -54,7 +54,6 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:8)], by = race,
             label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
                         sex ~ 'Gender',
-                        time  ~ 'Survival Time in Days', 
                         previous_TX ~ 'Previous Transplant',
                         preemptive_listing ~ 'Pre-Emptive Listing',                        
                         dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
@@ -79,7 +78,6 @@ tbl_summary(df_cand_kipa_table1, by = race,
              label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
                         sex ~ 'Gender',
-                        time  ~ 'Survival Time in Days', 
                         previous_TX ~ 'Previous Transplant',
                         preemptive_listing ~ 'Pre-Emptive Listing',                        
                         dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
