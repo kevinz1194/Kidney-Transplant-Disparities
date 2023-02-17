@@ -50,7 +50,7 @@ df_cand_kipa_table1 <- df_cand_kipa %>%
          preemptive_listing, dialysis_time_at_list, top_percentile_epts)
 
 
-tbl_summary(df_cand_kipa_table1[ ,c(1:8)], by = race,
+tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
             label = list(diabetes ~ 'Diabetic', 
                         age ~ 'Age at Listing',
                         sex ~ 'Gender',
