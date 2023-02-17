@@ -5,24 +5,24 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates (Line 46) -->
-<!-- Median dialysis time and preemptive listing in Top EPTS (Line 73) -->
-<!-- Average EPTS by age group and race (Line 100) -->
-<!-- Average EPTS by age group and race (Line 143)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 174)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 212) -->
+<!-- All adult deceased donor candidates (Line 47) -->
+<!-- Median dialysis time and preemptive listing in Top EPTS (Line 72) -->
+<!-- Average EPTS by age group and race (Line 98) -->
+<!-- Average EPTS by age group and race (Line 142)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 172)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 210) -->
 <!-- -->
-<!-- Average KDPI by age group and race (Line 249) -->
-<!-- Average KDPI by age group and race (Line 292)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 321) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 355) -->
+<!-- Average KDPI by age group and race (Line 247) -->
+<!-- Average KDPI by age group and race (Line 290)  -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 319) -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 353) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 389) -->
-<!-- Logistic regression for KDPI (Line 402)  -->
+<!-- Logistic regression for EPTS (Line 387) -->
+<!-- Logistic regression for KDPI (Line 400)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 420) -->
-<!-- Overall results for top 20% EPTS only (Line 486) -->
-<!-- Adjusted results for age (Line 512) -->
+<!-- Survival plots for competing risks (Line 418) -->
+<!-- Overall results for top 20% EPTS only (Line 484) -->
+<!-- Adjusted results for age (Line 510) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
