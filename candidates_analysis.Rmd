@@ -10,19 +10,19 @@ output:
 <!-- Average EPTS by age group and race (Line 98) -->
 <!-- Average EPTS by age group and race (Line 142)  -->
 <!-- Proportion of candidates with EPTS < 20 by age group and race (Line 172)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 210) -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 223) -->
 <!-- -->
-<!-- Average KDPI by age group and race (Line 247) -->
-<!-- Average KDPI by age group and race (Line 290)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 319) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 353) -->
+<!-- Average KDPI by age group and race (Line 260) -->
+<!-- Average KDPI by age group and race (Line 303)  -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 332) -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 366) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 387) -->
-<!-- Logistic regression for KDPI (Line 400)  -->
+<!-- Logistic regression for EPTS (Line 400) -->
+<!-- Logistic regression for KDPI (Line 413)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 418) -->
-<!-- Overall results for top 20% EPTS only (Line 484) -->
-<!-- Adjusted results for age (Line 510) -->
+<!-- Survival plots for competing risks (Line 432) -->
+<!-- Overall results for top 20% EPTS only (Line 497) -->
+<!-- Adjusted results for age (Line 523) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -182,13 +182,26 @@ df_cand_kipa_fig2 <- df_cand_kipa %>%
     top_percentile_epts == 1 ~ 0,
     top_percentile_epts == 2 ~ 1)) %>%
 
-  summarise(prop = round(100 * mean(top_percentile_epts), 2))
+  summarise(prop = as.numeric(round(100 * mean(top_percentile_epts), 2)),
+            n_candidates = n()) %>%
+  
+  mutate(prop_decimal = prop / 100) %>%
+  
+  mutate(ci_lower = prop_decimal - 1.96 * 
+           sqrt(prop_decimal * (1-prop_decimal) * (1/(n_candidates - 1))),
+         ci_higher = prop_decimal + 1.96 * 
+           sqrt(prop_decimal * (1-prop_decimal) * (1/(n_candidates - 1)))) %>%
+  
+  mutate(ci_lower = 100*ci_lower,
+         ci_higher = 100*ci_higher)
+  
   
 
 ggplot(df_cand_kipa_fig2, 
        aes(x = age_group, y = prop, 
            color = race, group = race)) +
   geom_point(size=1.25) + geom_line(size=1.05) +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_higher), width=0.5, size=0.5) + 
   theme_bw() + 
   ggtitle('Top 20 EPTS by Age Group and Selected Race') +
   xlab('Age Group (years)') + ylab('Proportion in Top 20 EPTS Percentile') + labs(col='Race') +
