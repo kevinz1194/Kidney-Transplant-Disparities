@@ -5,24 +5,24 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates (Line 47) -->
-<!-- Median dialysis time and preemptive listing in Top EPTS (Line 72) -->
-<!-- Average EPTS by age group and race (Line 98) -->
-<!-- Average EPTS by age group and race (Line 142)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 172)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 223) -->
+<!-- All adult deceased donor candidates (Line 48) -->
+<!-- Median dialysis time and preemptive listing in Top EPTS (Line 73) -->
+<!-- Average EPTS by age group and race (Line 103) -->
+<!-- Average EPTS by age group and race (Line 146)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 177)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 228) -->
 <!-- -->
-<!-- Average KDPI by age group and race (Line 260) -->
-<!-- Average KDPI by age group and race (Line 303)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 332) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 366) -->
+<!-- Average KDPI by age group and race (Line 264) -->
+<!-- Average KDPI by age group and race (Line 307)  -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 336) -->
+<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 370) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 400) -->
-<!-- Logistic regression for KDPI (Line 413)  -->
+<!-- Logistic regression for EPTS (Line 404) -->
+<!-- Logistic regression for KDPI (Line 417)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 432) -->
-<!-- Overall results for top 20% EPTS only (Line 497) -->
-<!-- Adjusted results for age (Line 523) -->
+<!-- Survival plots for competing risks (Line 436) -->
+<!-- Overall results for top 20% EPTS only (Line 501) -->
+<!-- Adjusted results for age (Line 527) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -47,7 +47,7 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
   select(race, diabetes, age, sex, previous_TX, 
-         preemptive_listing, dialysis_time_at_list, top_percentile_epts)
+         preemptive_listing, dialysis_time_at_list, top_percentile_epts, top20_kdpi, kdpi)
 
 
 tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
@@ -80,12 +80,16 @@ tbl_summary(df_cand_kipa_table1, by = race,
                         sex ~ 'Gender',
                         previous_TX ~ 'Previous Transplant',
                         preemptive_listing ~ 'Pre-Emptive Listing',                        
-                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing'),
+                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing',
+                        kdpi ~ 'KDPI',
+                        top20_kdpi ~ 'Top 20% KDPI'),
             value = list(diabetes ~ '1',
                          preemptive_listing ~ '1',
-                         previous_TX ~ '1'),
+                         previous_TX ~ '1',
+                         top20_kdpi ~ '1'),
             statistic = list(all_continuous() ~ '{median} ({sd})')) %>% 
   bold_labels() %>%
+  add_overall() %>%
   modify_caption("**All Adult Deceased Donor Candidates in Top 20% EPTS**") 
 
 
