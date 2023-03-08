@@ -5,12 +5,11 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates (Line 48) -->
-<!-- Median dialysis time and preemptive listing in Top EPTS (Line 73) -->
-<!-- Average EPTS by age group and race (Line 103) -->
+<!-- All adult deceased donor candidates (Line 47) -->
+<!-- Average EPTS by age group and race (Line 102) -->
 <!-- Average EPTS by age group and race (Line 146)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 177)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 228) -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 176)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 227) -->
 <!-- -->
 <!-- Average KDPI by age group and race (Line 264) -->
 <!-- Average KDPI by age group and race (Line 307)  -->
@@ -20,9 +19,9 @@ output:
 <!-- Logistic regression for EPTS (Line 404) -->
 <!-- Logistic regression for KDPI (Line 417)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 436) -->
-<!-- Overall results for top 20% EPTS only (Line 501) -->
-<!-- Adjusted results for age (Line 527) -->
+<!-- Survival plots for competing risks (Line 435) -->
+<!-- Overall results for top 20% EPTS only (Line 500) -->
+<!-- Adjusted results for age (Line 526) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -34,7 +33,7 @@ pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr,
                tidycmprsk, ggsurvfit, cowplot)
 knitr::opts_chunk$set(echo = FALSE)
 
-load('./candidates_v2.RData')
+load('./candidates.RData')
 df_cand_kipa$race <- droplevels(df_cand_kipa$race)
 df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian',
                                                         'American_Indian', 'Pacific_Islander', 'Other'))
@@ -458,7 +457,6 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
   select(time, race, status_death, status_top20, age_group, top_percentile_epts)
 
 
-#### THESE CALCULATIONS EACH TOOK 20+ MINUTES (NON-COMPUTING CLUSTER) #### 
 ### Plot of Death 
 death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
@@ -630,10 +628,7 @@ plot_title <- ggdraw() +
 cowplot::plot_grid(plot_title, plot_facet, ncol = 1, rel_heights = c(0.1, 1))
 
 
-#### ROUGHLY TRIPLES RUNTIME #### 
-# crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>%
-#   tbl_regression(exp = T)
-# 
-# 
-# results1 <- crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp)
+
+crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>%
+   tbl_regression(exp = T)
 ```
