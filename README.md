@@ -29,9 +29,11 @@ Updated 2/22/23: Changed to reflect updated variables. Labelling is updated. Err
 ### 4. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. Primarily sensitivity analyses and supplementary material.
 
+Updated 3/8/23: Updated to include all post-transplant recipient analyses.
 
-
-### 5. recipients_analysis_v2.Rmd
+### 5. recipients_analysis_v2.Rmd (removed)
 Added 2/16/23: Additional sensitivity competing-risks and outcomes analyses in the recipients dataset. Can be taken as supplementary material.
 
 Updated 3/3/23: Changed competing risks error.
+
+Updated 3/8/23: Removed.
