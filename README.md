@@ -13,7 +13,7 @@ Updated 3/8/23: Code is overhauled to add living donor variable and to work with
 
 
 
-### 2. candidates.R (Added 3/8/23)
+### 2. candidates_livingdonor.R (Added 3/8/23)
 Sets up two alternative versions of the candidates datasets. One drops those waitlisted in 2015, the other includes those transplanted with a living donor.
 
 
