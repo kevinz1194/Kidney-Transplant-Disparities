@@ -12,6 +12,12 @@ Updated 2/16/23: Different dialysis time variables are created. Additional gende
 Updated 3/8/23: Code is overhauled to add living donor variable and to work with the other files.
 
 
+
+### 2. candidates.R (Added 3/8/23)
+Sets up two alternative versions of the candidates datasets. One drops those waitlisted in 2015, the other includes those transplanted with a living donor.
+
+
+
 ### 3. recipients.R
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data.
 
@@ -19,6 +25,7 @@ Updated 2/16/23: Different dialysis time variables are created. Additional gende
 
 Updated 3/8/23: Code is overhauled, time variables are reworked. Merging with candidates file is now performed in
 recipients_analysis.Rmd.
+
 
 
 ### 4. candidates_analysis.Rmd
@@ -31,6 +38,7 @@ Updated 11/29/22: Incorrect labelling is changed.
 Updated 2/22/23: Changed to reflect updated variables. Labelling is updated. Error bars added.
 
 
+
 ### 6. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. Requires files produced by candidates.R and recipients.R.
 
@@ -38,9 +46,7 @@ Updated 3/8/23: Updated to include all post-transplant recipient and competing-r
 
 
 
-### 7. recipients_analysis_v2.Rmd (removed)
+### 7. recipients_analysis_v2.Rmd (Removed 3/8/23)
 Added 2/16/23: Additional sensitivity competing-risks and outcomes analyses in the recipients dataset. Can be taken as supplementary material.
 
 Updated 3/3/23: Changed competing risks error.
-
-Updated 3/8/23: Removed, analyses added to recipients_analysis.Rmd.
