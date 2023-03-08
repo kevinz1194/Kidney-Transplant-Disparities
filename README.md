@@ -13,9 +13,10 @@ Updated 3/8/23: Code is overhauled to add alternative dataset with patients wait
 
 
 
-### 2. candidates_livingdonor.R (Added 3/8/23)
+### 2. candidates_livingdonor.R 
 Sets up an alternative version of the candidates dataset. Includes those transplanted with a living donor.
 
+Updated 3/8/23: Added.
 
 
 ### 3. recipients.R
@@ -41,9 +42,10 @@ Updated 3/8/23: Changed to work with the new output files.
 
 
 
-### 5. candidates_analysis_sensitivity.Rmd (Added 3/8/23)
+### 5. candidates_analysis_sensitivity.Rmd 
 Candidate analyses on the two alternative candidate datasets.
 
+Updated 3/8/23: Added.
 
 
 ### 6. recipients_analysis.Rmd
@@ -53,7 +55,9 @@ Updated 3/8/23: Updated to include all post-transplant recipient and competing-r
 
 
 
-### 7. recipients_analysis_v2.Rmd (Removed 3/8/23)
+### 7. recipients_analysis_v2.Rmd 
 Added 2/16/23: Additional sensitivity competing-risks and outcomes analyses in the recipients dataset. Can be taken as supplementary material.
 
 Updated 3/3/23: Changed competing risks error.
+
+Updated 3/8/23: Removed.
