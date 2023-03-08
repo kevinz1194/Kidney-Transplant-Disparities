@@ -9,12 +9,12 @@ EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn
 
 Updated 2/16/23: Different dialysis time variables are created. Additional gender variable is added.
 
-Updated 3/8/23: Code is overhauled to add living donor variable and to work with the other files.
+Updated 3/8/23: Code is overhauled to add alternative dataset with patients waitlisted in 2015 removed, and to work with the other files.
 
 
 
 ### 2. candidates_livingdonor.R (Added 3/8/23)
-Sets up two alternative versions of the candidates datasets. One drops those waitlisted in 2015, the other includes those transplanted with a living donor.
+Sets up an alternative version of the candidates dataset. Includes those transplanted with a living donor.
 
 
 
