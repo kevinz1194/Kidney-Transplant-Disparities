@@ -1,15 +1,16 @@
 ---
 title: "Post-Transplant Sensitivity Analyses"
 output: 
-  html_document
+  html_document:
+    toc: true
 ---
 
-<!-- All adult deceased recipients (Line 37) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 by race (Line 66) -->
-<!-- KM curve among adult deceased recipients with EPTS > 20 by race (Line 93) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 123) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 163) -->
-<!-- Graft failure with patient alive outcome (Line 191)  -->
+<!-- All adult deceased recipients (Line 38) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 by race (Line 67) -->
+<!-- KM curve among adult deceased recipients with EPTS > 20 by race (Line 94) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 124) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 164) -->
+<!-- Graft failure with patient alive outcome (Line 192)  -->
 
 
 
