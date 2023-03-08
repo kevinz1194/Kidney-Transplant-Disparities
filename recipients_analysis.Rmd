@@ -141,7 +141,7 @@ death_function_cuminc <- cuminc(Surv(time_death_with_function / 365.25, status_d
 ggcuminc(death_function_cuminc, 
          outcome = '1', size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
-  ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS Top EPTS') +
+  ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS') +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7')) +
   xlim(c(0,5)) + ylim(c(0, 0.15)) +
   add_pvalue(location = 'annotation', x = 4.5, y = 0.10, size = 5) +
