@@ -1,80 +1,223 @@
 ---
-title: "Analysis of Recipients Data"
+title: "Post-Transplant Sensitivity Analyses"
 output: 
-  html_document:
-    toc: true
+  html_document
 ---
+
+<!-- All adult deceased recipients (Line 37) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 by race (Line 66) -->
+<!-- KM curve among adult deceased recipients with EPTS > 20 by race (Line 93) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 123) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 163) -->
+<!-- Graft failure with patient alive outcome (Line 191)  -->
+
+
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
 rm(list=ls()); gc()
 setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
-pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, cmprsk)
+pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, tidycmprsk, ggsurvfit)
 knitr::opts_chunk$set(echo = FALSE)
 
 load('./recipients.RData')
-df_recipients$race <- droplevels(df_recipients$race)
+load('./candidates.RData')
 
 
-df_recipients_top20 <- subset(df_recipients, df_recipients$percentile_epts <= 20)
-df_recipients_not_top20 <- subset(df_recipients, df_recipients$percentile_epts > 20)
+df_cand_kipa <- df_cand_kipa %>% select(PX_ID, PERS_ID, kdpi, top20_kdpi, top_percentile_epts, time)
+df_recipients <- merge(df_recipients, df_cand_kipa, by=c('PX_ID', 'PERS_ID'), all.x=T, all.y=F)
+df_recipients$race_tx <- droplevels(df_recipients$race_tx)
+```
+
+-----------------
+
+### All adult deceased recipients (Supplementary Table 1)
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
+df_recipients_table1 <- df_recipients %>%
+  filter(living_donor == '0') %>%
+  select(race_tx, diabetes_cat_tx, age_tx, sex_tx, previous_TX_KI, 
+         preemptive_listing_KI, time, kdpi, top20_kdpi)
 
 
-df_recipients_top20 <- df_recipients_top20 %>%
-  filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
-df_recipients_top20$race_tx <- factor(df_recipients_top20$race_tx , 
-                                      levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
+tbl_summary(df_recipients_table1, by = race_tx,
+            label = list(diabetes_cat_tx ~ 'Diabetic', 
+                        age_tx ~ 'Age at Transplant',
+                        sex_tx ~ 'Gender',
+                        time  ~ 'Waitlist Time (Listing to Transplant), Days', 
+                        previous_TX_KI ~ 'Previous Transplant',
+                        preemptive_listing_KI ~ 'Pre-Emptive Listing',                        
+                        kdpi ~ 'KDPI Score',
+                        top20_kdpi ~ 'Top20 KDPI'),
+            value = list(diabetes_cat_tx ~ '1',
+                         preemptive_listing_KI ~ '1',
+                         previous_TX_KI ~ '1'),
+            statistic = list(all_continuous() ~ '{mean} ({sd})')) %>% 
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Table 1. All adult deceased recipients from 2015 to 2020**") 
 ```
 
 
 -----------------
 
-### KM curve among adult recipients with EPTS < 20 by race (Figure 3)
-
+### KM curve among adult deceased recipients with top EPTS < 20 by race (Figure 3)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
-df_recipients_top20$death_tx <- as.numeric(df_recipients_top20$death_tx)
-fit_top20 <- survival::survfit(Surv(time / 365.25, death_tx) ~ race_tx, data = df_recipients_top20)
+df_recipients_top20 <- subset(df_recipients, df_recipients$top_percentile_epts == '1' & df_recipients$living_donor == '0')
+df_recipients_top20 <- df_recipients_top20 %>%
+  filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
+df_recipients_top20$race_tx <- factor(df_recipients_top20$race_tx, 
+                                      levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
+
+
+fit_top20 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+                               data = df_recipients_top20)
 
 ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
   conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
   legend = 'right',
-  ylim = c(0.9,1), xlim = c(0,6), pval.coord=c(0, 0.95),
+  xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
   risk.table = T,        
   risk.table.col = 'strata',
   font.size = 16,
   legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
   ggtheme = theme_bw(),
   palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
-
-rm(fit_top20, df_recipients_top20)
 ```
 
 
 -----------------
 
-### KM curve among adult recipients with EPTS > 20 by race (Figure 4)
-
+### KM curve among adult deceased recipients with EPTS > 20 by race (Figure 4)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=10, fig.width=10}
+df_recipients_not_top20 <- subset(df_recipients, df_recipients$top_percentile_epts == '0' & df_recipients$living_donor == '0')
 df_recipients_not_top20 <- df_recipients_not_top20 %>%
   filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
-df_recipients_not_top20$race_tx <- factor(df_recipients_not_top20$race_tx , 
+df_recipients_not_top20$race_tx <- factor(df_recipients_not_top20$race_tx, 
                                       levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
 
 
-df_recipients_not_top20$death_tx <- as.numeric(df_recipients_not_top20$death_tx)
-fit_not_top20 <- survival::survfit(Surv(time / 365.25, death_tx) ~ race_tx, data = df_recipients_not_top20)
+fit_not_top20 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+                                   data = df_recipients_not_top20)
 
 ggsurvplot(fit_not_top20, data = df_recipients_not_top20, size = 1.2, censor = F,
   conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
   legend = 'right',
-  ylim = c(0.7,1), xlim = c(0,6), pval.coord=c(0, 0.95),
+  xlim = c(0,5), ylim = c(0.65, 1), pval.coord=c(0, 0.75), 
   risk.table = T,        
   risk.table.col = 'strata',
   font.size = 16,
   legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
   ggtheme = theme_bw(),
   palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
+```
 
-rm(fit_not_top20, df_recipients_not_top20)
+<!-- -->
+<!-- -->
+<!-- -->
+
+-----------------
+
+### Cumulative incidence of death with function in top EPTS, graft failure competing risk
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9, results='hide'}
+df_recipients_top20 <- df_recipients_top20 %>%
+  
+  mutate(status_death_with_function = case_when(
+    death_functioning_graft == '1' ~ 1,
+    graft_failure == '1' ~ 2,
+    TRUE ~ 0),
+    
+    time_death_with_function = case_when(
+      status_death_with_function == '1' ~ time_tx_death_days,
+      status_death_with_function == '2' ~ time_tx_graft_failure_days,
+      TRUE ~ time_tx_fu_days)) %>%
+  
+  mutate(status_death_with_function = factor(status_death_with_function, levels = c(0,1,2)))
+  
+
+death_function_cuminc <- cuminc(Surv(time_death_with_function / 365.25, status_death_with_function) ~ race_tx, 
+                                data = df_recipients_top20) 
+
+ggcuminc(death_function_cuminc, 
+         outcome = '1', size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative Incidence') +
+  ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS Top EPTS') +
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7')) +
+  xlim(c(0,5)) + ylim(c(0, 0.15)) +
+  add_pvalue(location = 'annotation', x = 4.5, y = 0.10, size = 5) +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.text.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(l=5)),
+        axis.text.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 13, hjust=0.5),
+        legend.text = element_text(size = 14)) 
+```
+
+
+-----------------
+
+### Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9, results='hide'}
+death_function_cuminc_adj <- cuminc(Surv(time_death_with_function / 365.25, status_death_with_function) ~ race_tx + top20_kdpi, 
+                                    data = df_recipients_top20) 
+
+ggcuminc(death_function_cuminc_adj, 
+         outcome = '1', size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative Incidence') +
+  ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS, Adj. Top KDPI') +
+  xlim(c(0,5)) + ylim(c(0, 0.2)) +
+  add_pvalue(location = 'annotation', x = 4.5, y = 0.15, size = 5) +
+  scale_color_manual(
+    values = c('#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7'),
+    labels = c('White, Non Top KDPI', 'Black_AA, Non Top KDPI', 'Hispanic, Non Top KDPI', 'Asian, Non Top KDPI',
+               'White, Top KDPI', 'Black_AA, Top KDPI', 'Hispanic, Top KDPI', 'Asian, Top KDPI')) +
+  scale_linetype_manual(values = c(rep('solid', 4), rep('dashed', 4))) +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.text.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(l=5)),
+        axis.text.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 9, hjust=0.5),
+        legend.text = element_text(size = 14)) 
+```
+
+
+-----------------
+
+### Graft failure with patient alive outcome
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9, results='hide'}
+df_recipients_top20 <- df_recipients_top20 %>%
+  
+  mutate(status_gs = case_when(
+    graft_survival == '1' ~ 1,
+    TRUE ~ 0),
+    
+    time_gs = case_when(
+      status_gs == '1' ~ time_tx_graft_survival_days,
+      TRUE ~ time_tx_fu_days)) %>%
+  
+  mutate(status_gs = factor(status_gs, levels = c(0,1)))
+
+
+gs_cuminc <- cuminc(Surv(time_gs / 365.25, status_gs) ~ race_tx, data = df_recipients_top20)  
+
+
+ggcuminc(gs_cuminc, 
+         outcome = '1', size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative Incidence') +
+  ggtitle('Graft Failure with Patient Alive for Top EPTS in Deceased Donors') +
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7')) +
+  xlim(c(0,5)) + ylim(c(0, 0.35)) +
+  add_pvalue(location = 'annotation', x = 4.5, y = 0.3, size = 5) +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+        axis.text.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14, margin = margin(l=5)),
+        axis.text.y = element_text(size = 14, margin = margin(r=5)),
+        plot.title = element_text(face = 'bold', size = 16, hjust=0.5),
+        legend.text = element_text(size = 16)) 
 ```
