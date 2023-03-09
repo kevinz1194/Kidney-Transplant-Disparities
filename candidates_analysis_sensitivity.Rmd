@@ -378,11 +378,11 @@ df_cand_kipa_kdpi4 <- df_cand_kipa %>%
   
   mutate(top20_kdpi = as.numeric(top20_kdpi)) %>%
   
-  summarise(result = round(100 * mean(top20_kdpi), 2)) %>%
-  
   mutate(top20_kdpi = case_when(
     top20_kdpi == '1' ~ 0,
     top20_kdpi == '2' ~ 1)) %>%
+  
+  summarise(result = round(100 * mean(top20_kdpi), 2)) %>%
 
   select(race, age_group, result) %>% 
   
