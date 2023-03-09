@@ -16,12 +16,12 @@ output:
 <!-- Proportion of candidates with KDPI < 20 by age group and race (Line 336) -->
 <!-- Proportion of candidates with KDPI < 20 by age group and race (Line 370) -->
 <!-- -->
-<!-- Logistic regression for EPTS (Line 404) -->
-<!-- Logistic regression for KDPI (Line 417)  -->
+<!-- Logistic regression for EPTS (Line 414) -->
+<!-- Logistic regression for KDPI (Line 427)  -->
 <!-- -->
-<!-- Survival plots for competing risks (Line 435) -->
-<!-- Overall results for top 20% EPTS only (Line 500) -->
-<!-- Adjusted results for age (Line 526) -->
+<!-- Survival plots for competing risks (Line 445) -->
+<!-- Overall results for top 20% EPTS only (Line 510) -->
+<!-- Adjusted results for age (Line 536) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -340,6 +340,10 @@ df_cand_kipa_kdpi3 <- df_cand_kipa %>%
   
   mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic')),
          top20_kdpi = as.numeric(top20_kdpi)) %>%
+  
+  mutate(top20_kdpi = case_when(
+    top20_kdpi == '1' ~ 0,
+    top20_kdpi == '2' ~ 1)) %>%
 
   summarise(prop = round(100 * mean(top20_kdpi), 2))
   
@@ -370,9 +374,15 @@ rm(df_cand_kipa_kdpi3)
 df_cand_kipa_kdpi4 <- df_cand_kipa %>%
   group_by(race, age_group) %>%
   
+  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
+  
   mutate(top20_kdpi = as.numeric(top20_kdpi)) %>%
   
-  summarise(result = round(100 * mean(top20_kdpi), 2)) %>%
+  mutate(top20_kdpi = case_when(
+    top20_kdpi == '1' ~ 0,
+    top20_kdpi == '2' ~ 1)) %>%
+  
+  summarise(result = round(100 * mean(top20_kdpi, na.rm=T), 2)) %>%
 
   select(race, age_group, result) %>% 
   
@@ -630,5 +640,5 @@ cowplot::plot_grid(plot_title, plot_facet, ncol = 1, rel_heights = c(0.1, 1))
 
 
 crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>%
-   tbl_regression(exp = T)
+  tbl_regression(exp = T)
 ```
