@@ -11,7 +11,7 @@ output:
 <!-- Proportion of candidates with EPTS < 20 by age group and race/Figure 1B (Line 139)  -->
 <!-- Logistic regression for EPTS (Line 191) -->
 <!-- Logistic regression for KDPI (Line 205)  -->
-<!-- Survival plots for competing risks (Line 220) -->
+<!-- Survival plots for competing risks/Figure 2 (Line 220) -->
 <!-- Overall results for top 20% EPTS only (Line 310) -->
 <!-- Adjusted results for age (Line 337) -->
 
@@ -215,7 +215,7 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 ----------------------
 
 
-### Survival plots for competing risks
+### Survival plots for competing risks (Figure 2)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
