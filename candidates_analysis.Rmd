@@ -5,23 +5,15 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates (Line 47) -->
-<!-- Average EPTS by age group and race (Line 102) -->
-<!-- Average EPTS by age group and race (Line 146)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 176)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race (Line 227) -->
-<!-- -->
-<!-- Average KDPI by age group and race (Line 264) -->
-<!-- Average KDPI by age group and race (Line 307)  -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 336) -->
-<!-- Proportion of candidates with KDPI < 20 by age group and race (Line 370) -->
-<!-- -->
-<!-- Logistic regression for EPTS (Line 414) -->
-<!-- Logistic regression for KDPI (Line 427)  -->
-<!-- -->
-<!-- Survival plots for competing risks (Line 445) -->
-<!-- Overall results for top 20% EPTS only (Line 510) -->
-<!-- Adjusted results for age (Line 536) -->
+<!-- All adult deceased donor candidates/Table 1 (Line 39) -->
+<!-- Average EPTS by age group and race/Figure 1A (Line 65) -->
+<!-- Average EPTS by age group and race (Line 109)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race/Figure 1B (Line 139)  -->
+<!-- Logistic regression for EPTS (Line 191) -->
+<!-- Logistic regression for KDPI (Line 205)  -->
+<!-- Survival plots for competing risks (Line 220) -->
+<!-- Overall results for top 20% EPTS only (Line 310) -->
+<!-- Adjusted results for age (Line 337) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -39,8 +31,8 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
                                                         'American_Indian', 'Pacific_Islander', 'Other'))
 ```
 
-
 -----------------
+
 
 ### All adult deceased donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
@@ -67,37 +59,8 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
 
 ---------------------
 
-### Repeat of Table 1 in Top EPTS
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
-df_cand_kipa_table1 <- df_cand_kipa_table1 %>%
-  filter(top_percentile_epts == '1') %>%
-  select(-c(top_percentile_epts))
-  
-tbl_summary(df_cand_kipa_table1, by = race,
-             label = list(diabetes ~ 'Diabetic', 
-                        age ~ 'Age at Listing',
-                        sex ~ 'Gender',
-                        previous_TX ~ 'Previous Transplant',
-                        preemptive_listing ~ 'Pre-Emptive Listing',                        
-                        dialysis_time_at_list ~ 'Years on Dialysis Pre-Listing',
-                        kdpi ~ 'KDPI',
-                        top20_kdpi ~ 'Top 20% KDPI'),
-            value = list(diabetes ~ '1',
-                         preemptive_listing ~ '1',
-                         previous_TX ~ '1',
-                         top20_kdpi ~ '1'),
-            statistic = list(all_continuous() ~ '{median} ({sd})')) %>% 
-  bold_labels() %>%
-  add_overall() %>%
-  modify_caption("**All Adult Deceased Donor Candidates in Top 20% EPTS**") 
 
-
-rm(df_cand_kipa_table1)
-```
-
------------------
-
-### Average EPTS by age group and race (Figure 1)
+### Average EPTS by age group and race (Figure 1A)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_fig1 <- 
   df_cand_kipa %>%
@@ -138,10 +101,10 @@ ggplot(df_cand_kipa_fig1,
 rm(df_cand_kipa_fig1)
 ```
 
-
 -----------------
 
-### Average EPTS by age group and race (Table 2)
+
+### Average EPTS by age group and race
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_table2 <- df_cand_kipa %>%
   group_by(race, age_group) %>%
@@ -168,10 +131,10 @@ kable(df_cand_kipa_table2, align=c('l', rep('c', 7))) %>%
 rm(df_cand_kipa_table2)
 ```
 
-
 -----------------
 
-### Proportion of candidates with EPTS < 20 by age group and race (Figure 2)
+
+### Proportion of candidates with EPTS < 20 by age group and race (Figure 1B)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_fig2 <- df_cand_kipa %>%
   group_by(race, age_group) %>%
@@ -220,194 +183,8 @@ ggplot(df_cand_kipa_fig2,
 rm(df_cand_kipa_fig2)
 ```
 
--------------
-
-### Proportion of candidates with EPTS < 20 by age group and race (Table 3)
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_table3 <- df_cand_kipa %>%
-  group_by(race, age_group) %>%
-  
-  mutate(top_percentile_epts = as.numeric(top_percentile_epts)) %>%
-  
-  mutate(top_percentile_epts = case_when(
-    top_percentile_epts == 1 ~ 0,
-    top_percentile_epts == 2 ~ 1)) %>%
-  
-  summarise(result = round(100 * mean(top_percentile_epts), 2)) %>%
-
-  select(race, age_group, result) %>% 
-  
-  pivot_wider(names_from = race, values_from = result)
-
-
-colnames(df_cand_kipa_table3) <- c('Age Group', 'White or Caucasian', 'Black or AA',
-                                    'Hispanic', 'Asian', 'American_Indian',   
-                                    'Pacific_Islander', 'Other')
-  
-
-kable(df_cand_kipa_table3, align=c('l', rep('c', 7))) %>%
-  kable_classic() 
-
-
-rm(df_cand_kipa_table3)
-```
-
-
-<!-- -->
-<!-- -->
-<!-- -->
-
 ----------------------
 
-### Average KDPI by age group and race (plot)
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_kdpi1 <- 
-  df_cand_kipa %>%
-     group_by(race, age_group) %>%
-     summarise(median = median(kdpi, na.rm=T),
-               low_iqr = quantile(kdpi, probs=0.25, na.rm=T),
-               up_iqr = quantile(kdpi, probs=0.75, na.rm=T),
-               mean_t = mean(kdpi, na.rm=T),
-               sd_t = sd(kdpi, na.rm=T),
-               n_candidates = n()) %>%
-  
-  mutate(se = sd_t / sqrt(n_candidates-1),
-         low_ci_mean = mean_t - 1.96*se,
-         up_ci_mean = mean_t + 1.96*se) %>%
-  
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
-  
-  mutate(race = factor(race, levels=c('Black_AA', 'Hispanic', 'White')))
-
-
-ggplot(df_cand_kipa_kdpi1, 
-       aes(x = age_group, y = mean_t, 
-           color = race, group = race)) +
-  geom_point(size=1.25) + geom_line(size=1.05) +
-  geom_errorbar(aes(ymin=low_ci_mean, ymax=up_ci_mean), width=0.5, size=0.5) + 
-  theme_bw() + 
-  ggtitle('Average KDPI by Age Group and Race') +
-  xlab('Age Group (years)') + ylab('Average KDPI Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'), 
-                     labels = c('Black or AA', 'Hispanic/Latino', 'White or Caucasian')) +
-  theme(
-    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-    axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-    axis.text.y = element_text(size = 12, margin = margin(r=5)),
-    plot.title = element_text(face = 'bold', size = 14, hjust=0.5)) 
-
-
-rm(df_cand_kipa_kdpi1)
-```
-
-----------------------
-
-### Average KDPI by age group and race (table)
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_kdpi2 <- df_cand_kipa %>%
-  group_by(race, age_group) %>%
-  summarise(avg_kdpi_epts = round(mean(kdpi, na.rm=T), 2),
-            lower = round(quantile(kdpi, na.rm=T, 0.25), 2),
-            upper = round(quantile(kdpi, na.rm=T, 0.75), 2)) %>%
-  
-  mutate(result = paste0(avg_kdpi_epts, ' (', lower, ' - ', upper, ')')) %>%
-  
-  select(race, age_group, result) %>%
-  
-  pivot_wider(names_from = race, values_from = result)
-
-
-colnames(df_cand_kipa_kdpi2) <- c('Age Group', 'White or Caucasian', 'Black or AA',
-                                    'Hispanic', 'Asian', 'American_Indian',   
-                                    'Pacific_Islander', 'Other')
-  
-
-kable(df_cand_kipa_kdpi2, align=c('l', rep('c', 7))) %>%
-  kable_classic() 
-
-rm(df_cand_kipa_kdpi2)
-```
-
-
-----------------------
-
-### Proportion of candidates with KDPI < 20 by age group and race (plot)
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_kdpi3 <- df_cand_kipa %>%
-  group_by(race, age_group) %>%
-  
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
-  
-  mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic')),
-         top20_kdpi = as.numeric(top20_kdpi)) %>%
-  
-  mutate(top20_kdpi = case_when(
-    top20_kdpi == '1' ~ 0,
-    top20_kdpi == '2' ~ 1)) %>%
-
-  summarise(prop = round(100 * mean(top20_kdpi), 2))
-  
-
-ggplot(df_cand_kipa_kdpi3, 
-       aes(x = age_group, y = prop, 
-           color = race, group = race)) +
-  geom_point(size=1.25) + geom_line(size=1.05) +
-  theme_bw() + 
-  ggtitle('Top 20 KDPI by Age Group and Selected Race') +
-  xlab('Age Group (years)') + ylab('Proportion in Top 20 KDPI Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'), 
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
-  theme(
-    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-    axis.title.x = element_text(size = 12, margin = margin(t=5)), 
-    axis.text.y = element_text(size = 12, margin = margin(r=5)),
-    plot.title = element_text(face = 'bold', size = 14, hjust=0.5)) 
-
-
-rm(df_cand_kipa_kdpi3)
-```
-
-----------------------
-
-### Proportion of candidates with KDPI < 20 by age group and race (table)
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_kdpi4 <- df_cand_kipa %>%
-  group_by(race, age_group) %>%
-  
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
-  
-  mutate(top20_kdpi = as.numeric(top20_kdpi)) %>%
-  
-  mutate(top20_kdpi = case_when(
-    top20_kdpi == '1' ~ 0,
-    top20_kdpi == '2' ~ 1)) %>%
-  
-  summarise(result = round(100 * mean(top20_kdpi, na.rm=T), 2)) %>%
-
-  select(race, age_group, result) %>% 
-  
-  pivot_wider(names_from = race, values_from = result)
-
-
-colnames(df_cand_kipa_kdpi4) <- c('Age Group', 'White or Caucasian', 'Black or AA',
-                                    'Hispanic', 'Asian', 'American_Indian',   
-                                    'Pacific_Islander', 'Other')
-  
-
-kable(df_cand_kipa_kdpi4, align=c('l', rep('c', 7))) %>%
-  kable_classic() 
-
-
-rm(df_cand_kipa_kdpi4)
-```
-
-
-
-<!-- -->
-<!-- -->
-<!-- -->
-
-----------------------
 
 ### Logistic regression for EPTS
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
@@ -422,6 +199,7 @@ gtsummary::tbl_regression(glm(formula = top_percentile_epts ~ age_group + race,
 
 ----------------------
 
+
 ### Logistic regression for KDPI
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa$top20_kdpi <- factor(df_cand_kipa$top20_kdpi, levels=c(0,1))
@@ -434,11 +212,8 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
   add_significance_stars()
 ```
 
-<!-- -->
-<!-- -->
-<!-- -->
-
 ----------------------
+
 
 ### Survival plots for competing risks
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
@@ -460,6 +235,30 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
       TRUE ~ 0)) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
+  
+  mutate(status_death = factor(status_death, levels=c(0,1,2)),
+         status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
+  
+  select(time, race, status_death, status_top20, age_group, top_percentile_epts)
+
+
+
+df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
+  
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
+  
+  mutate(
+    status_death = case_when(
+      death == '1' ~ 1,
+      transplant == '1' ~ 2,
+      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      TRUE ~ 0),
+    
+    status_top20 = case_when(
+      death == '1' ~ 2,
+      top20_kdpi == '1' ~ 1,
+      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      TRUE ~ 0)) %>%
   
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
          status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
@@ -505,6 +304,7 @@ ggcuminc(top20_cuminc,
 
 ----------------------
 
+
 ### Overall results for top 20% EPTS only
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
@@ -530,6 +330,7 @@ ggcuminc(top20_cuminc,
 ```
 
 ----------------------
+
 
 ### Adjusted results for age
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=12, fig.height=12}
@@ -639,6 +440,6 @@ cowplot::plot_grid(plot_title, plot_facet, ncol = 1, rel_heights = c(0.1, 1))
 
 
 
-crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp) %>%
+crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race) %>%
   tbl_regression(exp = T)
 ```
