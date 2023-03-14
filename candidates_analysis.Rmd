@@ -290,7 +290,6 @@ ggcuminc(top20_cuminc,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  ggtitle('Cumulative Incidence of Top 20% KDPI with Death and Delisting as Competing Risks') +
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'),
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
@@ -298,7 +297,8 @@ ggcuminc(top20_cuminc,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 15, hjust=0.5),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
         legend.text = element_text(size = 14))    
 ```
 
