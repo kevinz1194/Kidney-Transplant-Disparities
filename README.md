@@ -40,7 +40,7 @@ Updated 2/22/23: Changed to reflect updated variables. Labelling is updated. Err
 
 Updated 3/8/23: Changed to work with the new output files.
 
-Updated 3/14/23: Sections removed to contain only necessary code for article.
+Updated 3/15/23: Sections removed to contain only necessary code for article.
 
 
 ### 5. candidates_analysis_sensitivity.Rmd 
@@ -48,13 +48,15 @@ Candidate analyses on the two alternative candidate datasets.
 
 Updated 3/8/23: Added.
 
+Updated 3/15/23: Sections removed to contain only necessary code for article.
+
 
 ### 6. recipients_analysis.Rmd
 Runs survival analysis for EPTS scores in the recipients dataset. Requires files produced by candidates.R and recipients.R.
 
 Updated 3/8/23: Updated to include all post-transplant recipient and competing-risks analyses.
 
-Updated 3/14/23: Sections removed to contain only necessary code for article.
+Updated 3/15/23: Sections removed to contain only necessary code for article.
 
 
 ### 7. recipients_analysis_v2.Rmd 
