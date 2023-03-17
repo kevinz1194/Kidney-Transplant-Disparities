@@ -1,19 +1,19 @@
 ---
-title: "Analysis of Candidates Data"
+title: "Analysis of Candidates Data, with Living Donors"
 output: 
   html_document:
     toc: true
 ---
 
 <!-- All adult deceased donor candidates/Table 1 (Line 39) -->
-<!-- Average EPTS by age group and race/Figure 1A (Line 65) -->
-<!-- Average EPTS by age group and race (Line 109)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race/Figure 1B (Line 139)  -->
-<!-- Logistic regression for EPTS (Line 191) -->
-<!-- Logistic regression for KDPI (Line 205)  -->
-<!-- Survival plots for competing risks/Figure 2 (Line 220) -->
-<!-- Overall results for top 20% EPTS only (Line 310) -->
-<!-- Adjusted results for age (Line 337) -->
+<!-- Average EPTS by age group and race, deceased donors/Figure 1A (Line 66) -->
+<!-- Average EPTS by age group and race, deceased donors, table (Line 110)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race, deceased donors/Figure 1B (Line 140)  -->
+<!-- Logistic regression for EPTS, includes living donors (Line 192) -->
+<!-- Logistic regression for KDPI, includes living donors (Line 206)  -->
+<!-- Survival plots for competing risks/Figure 2 (Line 230) -->
+<!-- Overall results for top 20% EPTS only (Line 328) -->
+<!-- Adjusted results for age (Line 355) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -25,7 +25,7 @@ pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr,
                tidycmprsk, ggsurvfit, cowplot)
 knitr::opts_chunk$set(echo = FALSE)
 
-load('./candidates.RData')
+load('./candidates_livingdonor.RData')
 df_cand_kipa$race <- droplevels(df_cand_kipa$race)
 df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian',
                                                         'American_Indian', 'Pacific_Islander', 'Other'))
@@ -37,6 +37,7 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 ### All adult deceased donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
+  filter(living_donor == '0') %>%
   select(race, diabetes, age, sex, previous_TX, 
          preemptive_listing, dialysis_time_at_list, top_percentile_epts, top20_kdpi, kdpi)
 
@@ -60,10 +61,10 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
 ---------------------
 
 
-### Average EPTS by age group and race (Figure 1A)
+### Average EPTS by age group and race, deceased donors (Figure 1A)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_fig1 <- 
-  df_cand_kipa %>%
+  df_cand_kipa %>% filter(living_donor == '0') %>%
      group_by(race, age_group) %>%
      summarise(median = median(percentile_epts),
                low_iqr = quantile(percentile_epts, probs=0.25),
@@ -104,9 +105,9 @@ rm(df_cand_kipa_fig1)
 -----------------
 
 
-### Average EPTS by age group and race
+### Average EPTS by age group and race, deceased donors, table
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_table2 <- df_cand_kipa %>%
+df_cand_kipa_table2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   summarise(avg_percentile_epts = round(mean(percentile_epts), 2),
             lower = round(quantile(percentile_epts, 0.25), 2),
@@ -134,9 +135,9 @@ rm(df_cand_kipa_table2)
 -----------------
 
 
-### Proportion of candidates with EPTS < 20 by age group and race (Figure 1B)
+### Proportion of candidates with EPTS < 20 by age group and race, deceased donors (Figure 1B)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_fig2 <- df_cand_kipa %>%
+df_cand_kipa_fig2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
@@ -186,7 +187,7 @@ rm(df_cand_kipa_fig2)
 ----------------------
 
 
-### Logistic regression for EPTS
+### Logistic regression for EPTS, includes living donors
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 gtsummary::tbl_regression(glm(formula = top_percentile_epts ~ age_group + race, 
                               data = df_cand_kipa, 
@@ -200,7 +201,7 @@ gtsummary::tbl_regression(glm(formula = top_percentile_epts ~ age_group + race,
 ----------------------
 
 
-### Logistic regression for KDPI
+### Logistic regression for KDPI, includes living donors
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa$top20_kdpi <- factor(df_cand_kipa$top20_kdpi, levels=c(0,1))
 gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race, 
@@ -216,10 +217,20 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 
 
 ### Survival plots for competing risks (Figure 2)
+
+These levels correspond to the possible outcomes for top 20% KDPI: \newline
+
+* 0: Censored, includes living donors
+* **1: Transplant with top 20% kidney from deceased donor** (main outcome)
+* 2: Transplant with non-top 20% kidney from deceased donor
+* 3: Death or delisting
+
+
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
-  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, 
+         top_percentile_epts, living_donor) %>%
   
   mutate(
     status_death = case_when(
@@ -229,15 +240,16 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
       TRUE ~ 0),
     
     status_top20 = case_when(
-      death == '1' ~ 2,
-      top20_kdpi == '1' ~ 1,
-      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      death == '1' ~ 3,
+      top20_kdpi == '1' & living_donor == '0' ~ 1,
+      top20_kdpi == '0' & living_donor == '0' ~ 2,
+      is.na(df_cand_kipa$removal_code) == T ~ 3,
       TRUE ~ 0)) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
   
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
-         status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
+         status_top20 = factor(status_top20, levels=c(0,1,2,3))) %>%
   
   select(time, race, status_death, status_top20, age_group, top_percentile_epts)
 
@@ -245,7 +257,8 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
 
 df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
   
-  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, 
+         top_percentile_epts, living_donor) %>%
   
   mutate(
     status_death = case_when(
@@ -255,24 +268,27 @@ df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
       TRUE ~ 0),
     
     status_top20 = case_when(
-      death == '1' ~ 2,
-      top20_kdpi == '1' ~ 1,
-      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      death == '1' ~ 3,
+      top20_kdpi == '1' & living_donor == '0' ~ 1,
+      top20_kdpi == '0' & living_donor == '0' ~ 2,
+      is.na(df_cand_kipa$removal_code) == T ~ 3,
       TRUE ~ 0)) %>%
   
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
-         status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
+         status_top20 = factor(status_top20, levels=c(0,1,2,3))) %>%
   
   select(time, race, status_death, status_top20, age_group, top_percentile_epts)
+```
 
 
-### Plot of Death 
+
+#### Plot of Death 
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
-  ggtitle('Cumulative Incidence of Death with Transplant and Delisting as Competing Risks') +
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'),
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
@@ -282,9 +298,11 @@ ggcuminc(death_cuminc,
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
         plot.title = element_text(face = 'bold', size = 15, hjust=0.5),
         legend.text = element_text(size = 14))  
+```
 
 
-### Plot of Top 20% Transplant
+#### Plot of Top 20% Transplant
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 top20_cuminc <- cuminc(Surv(time / 365.25, status_top20) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(top20_cuminc, 
          outcome = '1',
@@ -305,7 +323,7 @@ ggcuminc(top20_cuminc,
 ----------------------
 
 
-### Overall results for top 20% EPTS only
+### Top 20% KDPI for top 20% EPTS only
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
 
