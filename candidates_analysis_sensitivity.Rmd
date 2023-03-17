@@ -5,20 +5,18 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates, no 2015 (Line 44) -->
-<!-- Average EPTS by age group and race, no 2015 (Line 70) -->
-<!-- Average EPTS by age group and race, no 2015 (Line 114)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race, no 2015 (Line 144)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race, no 2015 (Line 196) -->
+<!-- All adult deceased donor candidates, no 2015 (Line 43) -->
+<!-- Average EPTS by age group and race, deceased donors, no 2015 (Line 70) -->
+<!-- Average EPTS by age group and race, deceased donors, no 2015, table (Line 115)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race, deceased donors, no 2015 (Line 145)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race, deceased donors, no 2015 (Line 197) -->
 <!-- -->
-<!-- Logistic regression for EPTS, no 2015 (Line 233) -->
-<!-- Logistic regression for KDPI, no 2015 (Line 247)  -->
+<!-- Logistic regression for EPTS, includes living donors, no 2015 (Line 234) -->
+<!-- Logistic regression for KDPI, includes living donors, no 2015 (Line 248)  -->
 <!-- -->
-<!-- Survival plots for competing risks, no 2015 (Line 266) -->
-<!-- Overall results for top 20% EPTS only, no 2015 (Line 356) -->
-<!-- Adjusted results for age, no 2015 (Line 384) -->
-<!-- Cumulative incidence of top deceased donor KDPI transplant, with various competing risks (incl. living donor) (Line 514) -->
-<!-- Cumulative incidence of top deceased donor KDPI transplant, with various competing risks (incl. living donor) (Line 562) --> 
+<!-- Survival plots for competing risks, no 2015 (Line 276) -->
+<!-- Overall results for top 20% EPTS only, no 2015 (Line 371) -->
+<!-- Adjusted results for age, no 2015 (Line 399) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -27,10 +25,11 @@ setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, 
-               tidycmprsk, ggsurvfit, cowplot)
+               tidycmprsk, ggsurvfit, cowplot, lubridate)
 knitr::opts_chunk$set(echo = FALSE)
 
-load('./candidates_no2015.RData')
+load('./candidates_livingdonor.RData')
+df_cand_kipa <- subset(df_cand_kipa, year(as.Date(df_cand_kipa$listing_date)) != 2015)
 df_cand_kipa$race <- droplevels(df_cand_kipa$race)
 df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian',
                                                         'American_Indian', 'Pacific_Islander', 'Other'))
@@ -39,9 +38,10 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 -----------------
 
 
-### All adult deceased donor candidates, no 2015
+### Average EPTS by age group and race, deceased donors, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
+  filter(living_donor == '0') %>%
   select(race, diabetes, age, sex, previous_TX, 
          preemptive_listing, dialysis_time_at_list, top_percentile_epts, top20_kdpi, kdpi)
 
@@ -65,17 +65,18 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
 ---------------------
 
 
-### Average EPTS by age group and race, no 2015
+### Average EPTS by age group and race, deceased donors, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_fig1 <- 
-  df_cand_kipa %>%
-     group_by(race, age_group) %>%
-     summarise(median = median(percentile_epts),
-               low_iqr = quantile(percentile_epts, probs=0.25),
-               up_iqr = quantile(percentile_epts, probs=0.75),
-               mean_t = mean(percentile_epts),
-               sd_t = sd(percentile_epts),
-               n_candidates = n()) %>%
+  df_cand_kipa %>% filter(living_donor == '0') %>%
+  group_by(race, age_group) %>%
+  
+  summarise(median = median(percentile_epts),
+            low_iqr = quantile(percentile_epts, probs=0.25),
+            up_iqr = quantile(percentile_epts, probs=0.75),
+            mean_t = mean(percentile_epts),
+            sd_t = sd(percentile_epts),
+            n_candidates = n()) %>%
   
   mutate(se = sd_t / sqrt(n_candidates-1),
          low_ci_mean = mean_t - 1.96*se,
@@ -109,9 +110,9 @@ rm(df_cand_kipa_fig1)
 -----------------
 
 
-### Average EPTS by age group and race, no 2015
+### Average EPTS by age group and race, deceased donors, no 2015, table
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_table2 <- df_cand_kipa %>%
+df_cand_kipa_table2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   summarise(avg_percentile_epts = round(mean(percentile_epts), 2),
             lower = round(quantile(percentile_epts, 0.25), 2),
@@ -139,9 +140,9 @@ rm(df_cand_kipa_table2)
 -----------------
 
 
-### Proportion of candidates with EPTS < 20 by age group and race, no 2015
+### Proportion of candidates with EPTS < 20 by age group and race, deceased donors, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_fig2 <- df_cand_kipa %>%
+df_cand_kipa_fig2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
@@ -191,9 +192,9 @@ rm(df_cand_kipa_fig2)
 -------------
 
 
-### Proportion of candidates with EPTS < 20 by age group and race, no 2015
+### Proportion of candidates with EPTS < 20 by age group and race, deceased donors, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_table3 <- df_cand_kipa %>%
+df_cand_kipa_table3 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   
   mutate(top_percentile_epts = as.numeric(top_percentile_epts)) %>%
@@ -262,10 +263,19 @@ gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race,
 
 
 ### Survival plots for competing risks, no 2015
+
+These levels correspond to the possible outcomes for top 20% KDPI: \newline
+
+* 0: Censored, includes living donors
+* **1: Transplant with top 20% kidney from deceased donor** (main outcome)
+* 2: Transplant with non-top 20% kidney from deceased donor
+* 3: Death or delisting
+
+
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_cmp <- df_cand_kipa %>%
   
-  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts, living_donor) %>%
   
   mutate(
     status_death = case_when(
@@ -275,9 +285,10 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
       TRUE ~ 0),
     
     status_top20 = case_when(
-      death == '1' ~ 2,
-      top20_kdpi == '1' ~ 1,
-      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      death == '1' ~ 3,
+      top20_kdpi == '1' & living_donor == '0' ~ 1,
+      top20_kdpi == '0' & living_donor == '0' ~ 2,
+      is.na(df_cand_kipa$removal_code) == T ~ 3,
       TRUE ~ 0)) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
@@ -285,12 +296,12 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
          status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
   
-  select(time, race, status_death, status_top20, age_group, top_percentile_epts)
+  select(time, race, status_death, status_top20, age_group, top_percentile_epts, living_donor)
 
 
 df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
   
-  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts) %>%
+  select(PX_ID, time, race, transplant, death, top20_kdpi, removal_code, age_group, top_percentile_epts, living_donor) %>%
   
   mutate(
     status_death = case_when(
@@ -300,25 +311,27 @@ df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
       TRUE ~ 0),
     
     status_top20 = case_when(
-      death == '1' ~ 2,
-      top20_kdpi == '1' ~ 1,
-      is.na(df_cand_kipa$removal_code) == T ~ 2,
+      death == '1' ~ 3,
+      top20_kdpi == '1' & living_donor == '0' ~ 1,
+      top20_kdpi == '0' & living_donor == '0' ~ 2,
+      is.na(df_cand_kipa$removal_code) == T ~ 3,
       TRUE ~ 0)) %>%
   
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
          status_top20 = factor(status_top20, levels=c(0,1,2))) %>%
   
-  select(time, race, status_death, status_top20, age_group, top_percentile_epts)
+  select(time, race, status_death, status_top20, age_group, top_percentile_epts, living_donor)
+```
 
 
 
-### Plot of Death 
+#### Plot of Death 
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 death_cuminc <- cuminc(Surv(time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
-  ggtitle('Cumulative Incidence of Death with Transplant and Delisting as Competing Risks') +
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'),
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
@@ -326,11 +339,13 @@ ggcuminc(death_cuminc,
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
         axis.title.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 15, hjust=0.5),
+
         legend.text = element_text(size = 14))  
+```
 
 
 ### Plot of Top 20% Transplant
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 top20_cuminc <- cuminc(Surv(time / 365.25, status_top20) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(top20_cuminc, 
          outcome = '1',
@@ -351,7 +366,7 @@ ggcuminc(top20_cuminc,
 ----------------------
 
 
-### Overall results for top 20% EPTS only, no 2015
+### Top 20% KDPI for top 20% EPTS only, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
 
@@ -489,108 +504,4 @@ cowplot::plot_grid(plot_title, plot_facet, ncol = 1, rel_heights = c(0.1, 1))
 
 crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race) %>%
   tbl_regression(exp = T)
-```
-
-<!-- -->
-<!-- -->
-<!-- -->
-
-----------------------
-
-
-### Cumulative incidence of top deceased donor KDPI transplant, with various competing risks (incl. living donor)
-We filter to those who are White, Black or AA, and Hispanic due to small counts in the other race categories. \newline
-
-These levels correspond to the possible outcomes: \newline
-
-* 0: Censored
-* **1: Transplant with top 20% kidney from deceased donor** (main outcome)
-* 2: Transplant with non-top 20% kidney from deceased donor
-* 3: Transplant from living donor
-* 4: Death or delisting
-
-
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9, results='hide'}
-rm(list=ls())
-load('C:/Users/kevinz94/Desktop/EPTS_Score/candidates_livingdonor.RData')
-
-df_cand_kipa$race <- droplevels(df_cand_kipa$race)
-df_cand_kipa <- df_cand_kipa %>%
-  filter(race == 'White' | race  == 'Black_AA' | race  == 'Hispanic')
-df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hispanic'))
-
-
-df_cand_kipa <- df_cand_kipa %>%
-  mutate(status_top20_deceased = case_when(
-    
-    top20_kdpi == '1' & living_donor == '0' ~ 1,
-    not_top20_kdpi == '1' & living_donor == '0' ~ 2,
-    living_donor == '1' & transplant == '1' ~ 3,
-    death == '1' | is.na(removal_code) == T ~ 4,
-    TRUE ~ 0)) %>%
-  
-  mutate(status_top20_deceased = factor(status_top20_deceased, levels=c(0,1,2,3,4)))
-
-
-top20_deceased_cuminc <- cuminc(Surv(time / 365.25, status_top20_deceased) ~ race, data = df_cand_kipa) 
-
-
-ggcuminc(top20_deceased_cuminc, 
-         outcome = '1', size = 1.2) + 
-  labs(x = 'Time (years)', y = 'Cumulative Incidence') +
-  ggtitle('Top 20% Deceased Donor KDPI Transplant with Death, Living Donor, Other Deceased Donor Competing Risks') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9')) +
-  xlim(c(0,5)) + 
-  theme_bw() + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
-        axis.text.x = element_text(size = 14),
-        axis.title.y = element_text(size = 14, margin = margin(l=5)),
-        axis.text.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 11.5, hjust=0.5),
-        legend.text = element_text(size = 14)) 
-```
-
-----------------------
-
-
-### Cumulative incidence of top deceased donor KDPI transplant in top EPTS, with various competing risks (incl. living donor)
-
-Only those in the top 20% EPTS percentile are considered. \newline
-
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9, fig.height=9, results='hide'}
-df_cand_kipa_top20 <- df_cand_kipa %>%
-  filter(top_percentile_epts == '1')
-
-
-
-df_cand_kipa_top20 <- df_cand_kipa_top20 %>%
-  mutate(status_top20_deceased = case_when(
-    
-    top20_kdpi == '1' & living_donor == '0' ~ 1,
-    not_top20_kdpi == '1' & living_donor == '0' ~ 2,
-    living_donor == '1' & transplant == '1' ~ 3,
-    death == '1' | is.na(removal_code) == T ~ 4,
-    TRUE ~ 0)) %>%
-  
-  mutate(status_top20_deceased = factor(status_top20_deceased, levels=c(0,1,2,3,4)))
-
-
-top20_deceased_cuminc <- cuminc(Surv(time / 365.25, status_top20_deceased) ~ race, data = df_cand_kipa_top20) 
-
-
-ggcuminc(top20_deceased_cuminc, 
-         outcome = '1', size = 1.2) + 
-  labs(x = 'Time (years)', y = 'Cumulative Incidence') +
-  ggtitle('Top 20% Deceased Donor KDPI Transplant in Top EPTS with Death, Living Donor, Other Deceased Donor Competing Risks') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9')) +
-  xlim(c(0,5)) + 
-  theme_bw() + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        axis.title.x = element_text(size = 14, margin = margin(t=5)), 
-        axis.text.x = element_text(size = 14),
-        axis.title.y = element_text(size = 14, margin = margin(l=5)),
-        axis.text.y = element_text(size = 14, margin = margin(r=5)),
-        plot.title = element_text(face = 'bold', size = 12, hjust=0.5),
-        legend.text = element_text(size = 14)) 
 ```
