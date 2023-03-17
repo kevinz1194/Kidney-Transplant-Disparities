@@ -7,13 +7,13 @@ output:
 
 <!-- All adult deceased donor candidates/Table 1 (Line 39) -->
 <!-- Average EPTS by age group and race, deceased donors/Figure 1A (Line 66) -->
-<!-- Average EPTS by age group and race, deceased donors, table (Line 110)  -->
+<!-- Average EPTS by age group and race, deceased donors, table (Line 109)  -->
 <!-- Proportion of candidates with EPTS < 20 by age group and race, deceased donors/Figure 1B (Line 140)  -->
-<!-- Logistic regression for EPTS, includes living donors (Line 192) -->
-<!-- Logistic regression for KDPI, includes living donors (Line 206)  -->
-<!-- Survival plots for competing risks/Figure 2 (Line 230) -->
-<!-- Overall results for top 20% EPTS only (Line 328) -->
-<!-- Adjusted results for age (Line 355) -->
+<!-- Logistic regression for EPTS, includes living donors (Line 190) -->
+<!-- Logistic regression for KDPI, includes living donors (Line 204)  -->
+<!-- Survival plots for competing risks/Figure 2 (Line 228) -->
+<!-- Overall results for top 20% EPTS only (Line 326) -->
+<!-- Adjusted results for age (Line 353) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -77,9 +77,9 @@ df_cand_kipa_fig1 <-
          low_ci_mean = mean_t - 1.96*se,
          up_ci_mean = mean_t + 1.96*se) %>%
   
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
+  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
   
-  mutate(race = factor(race, levels=c('Black_AA', 'Hispanic', 'White')))
+  mutate(race = factor(race, levels=c('Black_AA', 'Hispanic', 'White', 'Asian')))
 
 
 ggplot(df_cand_kipa_fig1, 
@@ -88,10 +88,9 @@ ggplot(df_cand_kipa_fig1,
   geom_point(size=1.25) + geom_line(size=1.05) +
   geom_errorbar(aes(ymin=low_ci_mean, ymax=up_ci_mean), width=0.5, size=0.5) + 
   theme_bw() + 
-  ggtitle('Average EPTS by Age Group and Race') +
   xlab('Age Group (years)') + ylab('Average EPTS Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'), 
-                     labels = c('Black or AA', 'Hispanic/Latino', 'White or Caucasian')) +
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'), 
+                     labels = c('Black or AA', 'Hispanic/Latino', 'White or Caucasian', 'Asian')) +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 12, margin = margin(t=5)), 
@@ -140,9 +139,9 @@ rm(df_cand_kipa_table2)
 df_cand_kipa_fig2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
   group_by(race, age_group) %>%
   
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
+  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
   
-  mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic')),
+  mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian')),
          top_percentile_epts = as.numeric(top_percentile_epts)) %>%
   
   mutate(top_percentile_epts = case_when(
@@ -170,10 +169,9 @@ ggplot(df_cand_kipa_fig2,
   geom_point(size=1.25) + geom_line(size=1.05) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_higher), width=0.5, size=0.5) + 
   theme_bw() + 
-  ggtitle('Top 20 EPTS by Age Group and Selected Race') +
   xlab('Age Group (years)') + ylab('Proportion in Top 20 EPTS Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'), 
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'), 
+                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 12, margin = margin(t=5)), 
@@ -246,7 +244,7 @@ df_cand_kipa_cmp <- df_cand_kipa %>%
       is.na(df_cand_kipa$removal_code) == T ~ 3,
       TRUE ~ 0)) %>%
   
-  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic') %>%
+  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
   
   mutate(status_death = factor(status_death, levels=c(0,1,2)),
          status_top20 = factor(status_top20, levels=c(0,1,2,3))) %>%
@@ -309,8 +307,8 @@ ggcuminc(top20_cuminc,
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
   xlim(0, 5) +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9'),
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino')) +
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
+                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
