@@ -40,7 +40,7 @@ Updated 2/22/23: Changed to reflect updated variables. Labelling is updated. Err
 
 Updated 3/8/23: Changed to work with the new output files.
 
-Updated 3/15/23: Sections removed to contain only necessary code for article.
+Updated 3/16/23: Sections removed to contain only necessary code for article. Updated to include living donors.
 
 
 ### 5. candidates_analysis_sensitivity.Rmd 
