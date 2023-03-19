@@ -5,11 +5,13 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased recipients (Line 39) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 by race/Figure 3 (Line 68) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 by race, no 2015 (Line 103) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 134) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 174) -->
+<!-- All adult deceased recipients (Line 41) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 by race/Figure 3 (Line 70) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 by race, no 2015 (Line 105) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race (Line 136) -->
+<!-- KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race, no 2015 (Line 171) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 201) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 242) -->
 
 
 
@@ -108,6 +110,72 @@ fit_top20_no2015 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_fu
                                       data = df_recipients_top20_no2015)
 
 p <- ggsurvplot(fit_top20_no2015, data = df_recipients_top20_no2015, size = 1.2, censor = F,
+                conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
+                legend = 'right',
+                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                risk.table = T,        
+                risk.table.col = 'strata',
+                risk.table.fontsize = c(3.5),
+                font.main = c(16, 'bold'),
+                font.x = c(16),
+                font.y = c(16),
+                font.tickslab = c(14, 'bold'),
+                legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
+                ggtheme = theme_bw(),
+                palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
+p$table <- p$table + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p$plot <- p$plot + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p
+```
+
+-----------------
+
+
+### KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
+df_recipients_top20_kpdi <- subset(df_recipients, df_recipients$top_percentile_epts == '1' & 
+                                     df_recipients$top20_kdpi == '1' & df_recipients$living_donor == '0')
+df_recipients_top20_kpdi <- df_recipients_top20_kpdi %>%
+  filter(race_tx == 'White' | race_tx  == 'Black_AA' | race_tx  == 'Hispanic' | race_tx  == 'Asian')
+df_recipients_top20_kpdi$race_tx <- factor(df_recipients_top20_kpdi$race_tx, 
+                                           levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
+
+
+fit_top20_kpdi <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+                                    data = df_recipients_top20_kpdi)
+
+p <- ggsurvplot(fit_top20_kpdi, data = df_recipients_top20_kpdi, size = 1.2, censor = F,
+                conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
+                legend = 'right',
+                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                risk.table = T,        
+                risk.table.col = 'strata',
+                risk.table.fontsize = c(3.5),
+                font.main = c(16, 'bold'),
+                font.x = c(16),
+                font.y = c(16),
+                font.tickslab = c(14, 'bold'),
+                legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
+                ggtheme = theme_bw(),
+                palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
+p$table <- p$table + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p$plot <- p$plot + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p
+```
+
+-----------------
+
+
+### KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race, no 2015
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
+df_recipients_top20_kpdi_no2015 <- subset(df_recipients_top20_kpdi,
+                                     year(as.Date(df_recipients_top20_kpdi$listing_date)) != 2015)
+
+
+fit_top20_kdpi_no2015 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+                                           data = df_recipients_top20_kpdi_no2015)
+
+p <- ggsurvplot(fit_top20_kdpi_no2015, data = df_recipients_top20_kpdi_no2015, size = 1.2, censor = F,
                 conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
                 xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
