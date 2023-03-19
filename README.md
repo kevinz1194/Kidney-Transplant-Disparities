@@ -58,6 +58,8 @@ Updated 3/8/23: Updated to include all post-transplant recipient and competing-r
 
 Updated 3/15/23: Sections removed to contain only necessary code for article.
 
+Updated 3/19/23: Added sensitivity analysis with top 20% KDPI filter.
+
 
 ### 7. recipients_analysis_v2.Rmd 
 Added 2/16/23: Additional sensitivity competing-risks and outcomes analyses in the recipients dataset. Can be taken as supplementary material.
