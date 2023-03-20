@@ -393,7 +393,7 @@ ggcuminc(top20_cuminc_epts,
 
 
 ### Adjusted results for age, no 2015
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=12, fig.height=12, results='hide'}
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=12, fig.height=12}
 ### Adjust age groups
 crr(Surv(time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race) %>%
   tbl_regression(exp = T)
