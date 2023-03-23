@@ -42,6 +42,8 @@ Updated 3/8/23: Changed to work with the new output files.
 
 Updated 3/17/23: Sections removed to contain only necessary code for article. Updated to include living donors.
 
+Updated 3/22/23: Tables updated.
+
 
 ### 5. candidates_analysis_sensitivity.Rmd 
 Candidate analyses on the two alternative candidate datasets.
@@ -49,6 +51,8 @@ Candidate analyses on the two alternative candidate datasets.
 Updated 3/8/23: Added.
 
 Updated 3/17/23: Sections removed to contain only necessary code for article. Updated to include living donors.
+
+Updated 3/22/23: Tables updated.
 
 
 ### 6. recipients_analysis.Rmd
