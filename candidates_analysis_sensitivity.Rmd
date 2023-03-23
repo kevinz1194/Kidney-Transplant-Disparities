@@ -57,7 +57,7 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
             statistic = list(all_continuous() ~ '{mean} ({sd})')) %>% 
   add_overall() %>%
   bold_labels() %>%
-  modify_caption("**Table 1. All adult donor candidates from 2015 to 2020**") 
+  modify_caption("**Table 1. All adult donor candidates from 2016 to 2020**") 
 ```
 
 ---------------------
