@@ -5,15 +5,14 @@ output:
     toc: true
 ---
 
-<!-- All adult deceased donor candidates/Table 1 (Line 39) -->
-<!-- Average EPTS by age group and race, deceased donors/Figure 1A (Line 66) -->
-<!-- Average EPTS by age group and race, deceased donors, table (Line 109)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race, deceased donors/Figure 1B (Line 140)  -->
-<!-- Logistic regression for EPTS, includes living donors (Line 190) -->
-<!-- Logistic regression for KDPI, includes living donors (Line 204)  -->
-<!-- Survival plots for competing risks/Figure 2 (Line 228) -->
-<!-- Overall results for top 20% EPTS only (Line 326) -->
-<!-- Adjusted results for age (Line 353) -->
+<!-- All adult donor candidates/Table 1 (Line 38) -->
+<!-- Average EPTS by age group and race, all donors/Figure 1A (Line 64) -->
+<!-- Average EPTS by age group and race, all donors, table (Line 107)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race, all donors/Figure 1B (Line 137)  -->
+<!-- Logistic regression for EPTS, includes living donors (Line 188) -->
+<!-- Survival plots for competing risks/Figure 2 (Line 211) -->
+<!-- Overall results for top 20% EPTS only (Line 309) -->
+<!-- Adjusted results for age (Line 337) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -34,10 +33,9 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'Black_AA', 'Hi
 -----------------
 
 
-### All adult deceased donor candidates (Table 1)
+### All adult donor candidates (Table 1)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_cand_kipa_table1 <- df_cand_kipa %>%
-  filter(living_donor == '0') %>%
   select(race, diabetes, age, sex, previous_TX, 
          preemptive_listing, dialysis_time_at_list, top_percentile_epts, top20_kdpi, kdpi)
 
@@ -61,10 +59,10 @@ tbl_summary(df_cand_kipa_table1[ ,c(1:7)], by = race,
 ---------------------
 
 
-### Average EPTS by age group and race, deceased donors (Figure 1A)
+### Average EPTS by age group and race, all donors (Figure 1A)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
 df_cand_kipa_fig1 <- 
-  df_cand_kipa %>% filter(living_donor == '0') %>%
+  df_cand_kipa %>% 
      group_by(race, age_group) %>%
      summarise(median = median(percentile_epts),
                low_iqr = quantile(percentile_epts, probs=0.25),
@@ -89,7 +87,7 @@ ggplot(df_cand_kipa_fig1,
   geom_errorbar(aes(ymin=low_ci_mean, ymax=up_ci_mean), width=0.5, size=0.5) + 
   theme_bw() + 
   xlab('Age Group (years)') + ylab('Average EPTS Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'), 
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
                      labels = c('Black or AA', 'Hispanic/Latino', 'White or Caucasian', 'Asian')) +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -104,9 +102,9 @@ rm(df_cand_kipa_fig1)
 -----------------
 
 
-### Average EPTS by age group and race, deceased donors, table
+### Average EPTS by age group and race, all donors, table
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_table2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
+df_cand_kipa_table2 <- df_cand_kipa %>% 
   group_by(race, age_group) %>%
   summarise(avg_percentile_epts = round(mean(percentile_epts), 2),
             lower = round(quantile(percentile_epts, 0.25), 2),
@@ -134,9 +132,9 @@ rm(df_cand_kipa_table2)
 -----------------
 
 
-### Proportion of candidates with EPTS < 20 by age group and race, deceased donors (Figure 1B)
+### Proportion of candidates with EPTS < 20 by age group and race, all donors (Figure 1B)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa_fig2 <- df_cand_kipa %>% filter(living_donor == '0') %>%
+df_cand_kipa_fig2 <- df_cand_kipa %>% 
   group_by(race, age_group) %>%
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
@@ -170,7 +168,7 @@ ggplot(df_cand_kipa_fig2,
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_higher), width=0.5, size=0.5) + 
   theme_bw() + 
   xlab('Age Group (years)') + ylab('Proportion in Top 20 EPTS Percentile') + labs(col='Race') +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'), 
+  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
                      labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -193,21 +191,6 @@ gtsummary::tbl_regression(glm(formula = top_percentile_epts ~ age_group + race,
                           label = list(age_group ~ 'Age Group',
                                        race ~ 'Race'),
                           exponentiate = T) %>%
-  add_significance_stars()
-```
-
-----------------------
-
-
-### Logistic regression for KDPI, includes living donors
-```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center'}
-df_cand_kipa$top20_kdpi <- factor(df_cand_kipa$top20_kdpi, levels=c(0,1))
-gtsummary::tbl_regression(glm(formula = top20_kdpi ~ age_group + race, 
-                              data = df_cand_kipa, 
-                              family = binomial),
-                          label = list(age_group ~ 'Age Group',
-                                       race ~ 'Race'),
-                          exponentiate=T) %>%
   add_significance_stars()
 ```
 
