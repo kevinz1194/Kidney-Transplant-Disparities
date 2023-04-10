@@ -10,7 +10,7 @@
 #
 ################################################
 rm(list=ls()); gc()
-setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
+#setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
@@ -20,22 +20,34 @@ pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
 ################################################
 # 1. Set up candidate dataset
 ################################################
-df_cand_kipa <- haven::read_sas('./cand_kipa.sas7bdat')
 
 ## Limit data to 2015-2020 (live donors are included)
 ### Added: filter to those age 18 or older at listing ###
-df_cand_kipa <- df_cand_kipa %>%
+df_cand_kipa_all <- haven::read_sas('./cand_kipa.sas7bdat') %>%
   filter(as.Date(CAN_LISTING_DT) >= '2015-01-01' & as.Date(CAN_LISTING_DT) <= '2020-12-31') %>%
   filter(WL_ORG == 'KI') %>%
   filter(CAN_AGE_AT_LISTING >= 18)
 
+num_adults_ddkt <- nrow(df_cand_kipa_all)
+
 
 ## Drop observations with missing/unknown diabetes, age, and previous transplant
 ### Updated: Missing dialysis time not dropped, assumed missing is no dialysis ###
-df_cand_kipa <- df_cand_kipa %>%
-  drop_na(CAN_DIAB_TY, CAN_AGE_AT_LISTING, CAN_PREV_TX) %>%
+df_cand_kipa <- df_cand_kipa_all %>%
+  drop_na(CAN_DIAB_TY) %>%
   filter(CAN_DIAB_TY != '998')
 
+n_no_dm <- num_adults_ddkt - nrow(df_cand_kipa)
+  
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(CAN_AGE_AT_LISTING)
+
+n_no_age <- num_adults_ddkt - n_no_dm - nrow(df_cand_kipa)
+
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(CAN_PREV_TX)
+
+n_no_prev_tx <- num_adults_ddkt - (n_no_dm + n_no_age + nrow(df_cand_kipa))
 
 ### Add living donor indicator variable
 df_cand_kipa$living_donor <- 0
@@ -217,7 +229,7 @@ df_cand_kipa <- df_cand_kipa %>%
          CAN_RACE, CAN_LISTING_DT, CAN_AGE_AT_LISTING, CAN_PREV_TX, PERS_NEXTTX, REC_TX_DT,
          CAN_REM_CD, CAN_REM_DT, CAN_LAST_ACT_STAT_DT, CAN_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT,
          diabetes_cat, dialysis,
-         dialysis_time_at_list, dialysis_time_at_transplant, preemptive_transplant, preemptive_listing,
+         CAN_DIAL_DT, dialysis_time_at_list, dialysis_time_at_transplant, preemptive_transplant, preemptive_listing,
          raw_epts, percentile_epts, top_percentile_epts, living_donor)
 
 df_cand_kipa <- expss::drop_all_labels(df_cand_kipa)
@@ -296,13 +308,12 @@ df_cand_kipa$transplant_time[df_cand_kipa$transplant_time == '0' & df_cand_kipa$
 
 
 #########################
-### Death date and time until death (survival time)
+### Death date and time until death (waitlist survival time)
 df_cand_kipa <- df_cand_kipa %>% 
   
   mutate(death = case_when(
     CAN_REM_CD == '8' | !is.na(CAN_DEATH_DT) | !is.na(PERS_SSA_DEATH_DT) | !is.na(PERS_OPTN_DEATH_DT) ~ '1',
     TRUE ~ '0'))  %>%
-  
   mutate(death_date = NA_Date_,
          survival_time = NA,
          death_after_TX = 0)
@@ -332,13 +343,14 @@ df_cand_kipa$death_after_TX[df_cand_kipa$survival_time >= df_cand_kipa$transplan
                             df_cand_kipa$transplant == '1' &
                             df_cand_kipa$death == '1'] <- 1
 
-# Transplant takes priority over death
+# Transplant censors post-transplant deaths
 df_cand_kipa$death[df_cand_kipa$death_after_TX == '1'] <- 0
 
 
 
 #########################
 ### Time: transplant time or death time, or time until removal
+### wait_time: time to waitlist removal or last active status
 df_cand_kipa <- df_cand_kipa %>%
   mutate(time = case_when(
     transplant == '1' ~ transplant_time,
@@ -353,7 +365,14 @@ df_cand_kipa$time[is.na(df_cand_kipa$time) & !is.na(df_cand_kipa$CAN_LAST_ACT_ST
                                                      !is.na(df_cand_kipa$CAN_LAST_ACT_STAT_DT)]), 
              units = 'days')
   
+df_cand_kipa <- df_cand_kipa %>%
+       mutate(wait_time = case_when(
+         is.na(CAN_REM_DT) ~ CAN_LAST_ACT_STAT_DT - CAN_LISTING_DT,
+         TRUE ~ CAN_REM_DT- CAN_LISTING_DT))
 
+
+view(df_cand_kipa %>% 
+       select(CAN_LISTING_DT, CAN_REM_DT, CAN_LAST_ACT_STAT_DT, death_date, wait_time, time, death))
 
 ################################################
 # 4. Add kipa scores and finalize candidate dataset
@@ -408,12 +427,14 @@ colnames(df_cand_kipa) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', '
                             'dialysis_time_at_list', 'dialysis_time_at_transplant', 
                             'preemptive_transplant', 'preemptive_listing', 'living_donor')
 
-
+n_never_activated <- sum(is.na(df_cand_kipa$wait_time))
 
 ### Remove candidates with missing time (~3%)
-df_cand_kipa <- subset(df_cand_kipa, !is.na(df_cand_kipa$time))
+df_cand_kipa <- subset(df_cand_kipa, !is.na(df_cand_kipa$wait_time))
 
+n_final_candidate_dataset <- nrow(df_cand_kipa)
 
+n_excluded <- num_adults_ddkt - n_final_candidate_dataset
 
 save(df_cand_kipa, file = './candidates_livingdonor.RData')
 write.csv(df_cand_kipa, file = './candidates_livingdonor.csv')
