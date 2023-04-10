@@ -371,9 +371,6 @@ df_cand_kipa <- df_cand_kipa %>%
          TRUE ~ CAN_REM_DT- CAN_LISTING_DT))
 
 
-view(df_cand_kipa %>% 
-       select(CAN_LISTING_DT, CAN_REM_DT, CAN_LAST_ACT_STAT_DT, death_date, wait_time, time, death))
-
 ################################################
 # 4. Add kipa scores and finalize candidate dataset
 ################################################
@@ -409,7 +406,7 @@ df_cand_kipa <- df_cand_kipa %>%
 
 df_cand_kipa <- df_cand_kipa[ ,c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 'top_percentile_epts',
                                  'kdpi', 'top20_kdpi', 'not_top20_kdpi', 
-                                 'time', 'CAN_LISTING_DT',
+                                 'time', 'wait_time', 'CAN_LISTING_DT',
                                  'death', 'death_date', 'death_after_TX',
                                  'transplant', 'transplant_date', 'transplant_time',
                                  'censored', 'CAN_REM_CD', 'CAN_REM_DT', 'previous_TX',  
@@ -419,7 +416,7 @@ df_cand_kipa <- df_cand_kipa[ ,c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_ept
 
 colnames(df_cand_kipa) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', 'top_percentile_epts',
                             'kdpi', 'top20_kdpi', 'not_top20_kdpi',
-                            'time', 'listing_date',
+                            'time', 'wait_time', 'listing_date',
                             'death', 'death_date', 'death_after_TX',
                             'transplant', 'transplant_date', 'transplant_time',
                             'censored', 'removal_code', 'removal_date', 'previous_TX',  
@@ -429,9 +426,6 @@ colnames(df_cand_kipa) <- c('PX_ID', 'PERS_ID', 'raw_epts', 'percentile_epts', '
 
 n_never_activated <- sum(is.na(df_cand_kipa$wait_time))
 
-### Remove candidates with missing time (~3%)
-df_cand_kipa <- subset(df_cand_kipa, !is.na(df_cand_kipa$wait_time))
-
 n_final_candidate_dataset <- nrow(df_cand_kipa)
 
 n_excluded <- num_adults_ddkt - n_final_candidate_dataset
@@ -439,4 +433,6 @@ n_excluded <- num_adults_ddkt - n_final_candidate_dataset
 save(df_cand_kipa, file = './candidates_livingdonor.RData')
 write.csv(df_cand_kipa, file = './candidates_livingdonor.csv')
 
+
+##To do: add code here to create Figure S1
 

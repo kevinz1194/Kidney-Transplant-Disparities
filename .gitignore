@@ -6,3 +6,4 @@
 *.Rproj
 *.sas7bdat
 *.csv
+.Rproj.user
