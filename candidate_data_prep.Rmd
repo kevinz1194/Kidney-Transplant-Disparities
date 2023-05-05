@@ -31,28 +31,10 @@ df_cand_kipa_all <- haven::read_sas('./cand_kipa.sas7bdat') %>%
 num_adult_registrations <- df_cand_kipa_all$PX_ID %>% unique() %>% length()
 ```
 
-# Excluding registrations missing key variables
-```{r exclusions}
-df_cand_kipa <- df_cand_kipa_all %>%
-  drop_na(CAN_DIAB_TY) %>%
-  filter(CAN_DIAB_TY != '998')
-
-n_no_dm <- num_adult_registrations - (df_cand_kipa$PX_ID %>% unique() %>% length())
-  
-df_cand_kipa <- df_cand_kipa %>%
-  drop_na(CAN_AGE_AT_LISTING)
-
-n_no_age <- num_adult_registrations - n_no_dm - (df_cand_kipa$PX_ID %>% unique() %>% length())
-
-df_cand_kipa <- df_cand_kipa %>%
-  drop_na(CAN_PREV_TX)
-
-n_no_prev_tx <- num_adult_registrations - (n_no_dm + n_no_age + (df_cand_kipa$PX_ID %>% unique() %>% length()))
-```
 
 # create waitlist time end date for each `PX_ID` registration
 ```{r}
-df_cand_kipa <- df_cand_kipa %>%
+df_cand_kipa <- df_cand_kipa_all %>%
   mutate(waitlist_end_date = case_when(
     is.na(REC_TX_DT) == FALSE ~ REC_TX_DT,
     is.na(CAN_REM_DT) == FALSE ~ CAN_REM_DT,
@@ -683,6 +665,8 @@ df_cand_kipa_all %>%
 df_cand_kipa %>%
   filter(PX_ID == 1020156) %>%
   select(PX_ID, CAN_LISTING_DT, REC_TX_DT, DON_TY, kdpi)
+
+unique_candidates
 ```
 
 
@@ -709,6 +693,31 @@ df_cand_kipa %>%
 ##Add after KDPI fixed
 ```
 
+
+# Exclude listings missing key variables
+```{r exclusions}
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(diabetes)
+
+n_no_dm <- unique_listings - (df_cand_kipa$PX_ID %>% unique() %>% length())
+  
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(age)
+
+n_no_age <- unique_listings - n_no_dm - (df_cand_kipa$PX_ID %>% unique() %>% length())
+
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(previous_TX)
+
+n_no_prev_tx <- unique_listings - (n_no_dm + n_no_age + (df_cand_kipa$PX_ID %>% unique() %>% length()))
+
+
+df_cand_kipa <- df_cand_kipa %>%
+  drop_na(race)
+
+n_no_race <- unique_listings - (n_no_dm + n_no_age + n_no_prev_tx + (df_cand_kipa$PX_ID %>% unique() %>% length()))
+
+```
 
 # Write file out
 ```{r write_out}
