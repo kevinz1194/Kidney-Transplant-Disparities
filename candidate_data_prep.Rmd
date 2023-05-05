@@ -1,6 +1,9 @@
 ---
 title: "Candidate file prep for EPTS inequity"
-output: html_notebook
+output:
+  html_document:
+    toc: true
+    df_print: paged
 authors: Nour Asfour, Kevin Zhang, and William Parker
 ---
 
@@ -67,7 +70,8 @@ single_registrations <- df_cand_kipa %>%
   mutate(num_list = n()) %>%
   filter(num_list == 1) %>%
   ungroup() %>% 
-  mutate(wait_time = waitlist_end_date - CAN_LISTING_DT,
+  mutate(min_list_date = CAN_LISTING_DT,
+         wait_time = waitlist_end_date - min_list_date,
          outcome = case_when(
            DON_TY == "C" ~ "DDKT",
            DON_TY == "L" ~ "LDKT",
@@ -76,9 +80,10 @@ single_registrations <- df_cand_kipa %>%
          ))
 
 single_registrations %>%
-  select(CAN_LISTING_DT, CAN_REM_DT, CAN_REM_CD, REC_TX_DT, waitlist_end_date, wait_time, outcome) %>%
+  select(CAN_LISTING_DT, min_list_date, CAN_REM_DT, CAN_REM_CD, REC_TX_DT, waitlist_end_date, wait_time, outcome) %>%
   count(outcome)
 ```
+
 
 
 # Create a single record for candidates with multiple concurrent registrations
@@ -98,16 +103,72 @@ avg_num_registrations_multiple <- mean(multiple_registrations %>% group_by(PERS_
 
 ## Seperate sequential and consecutive registrations
 ```{r}
+########################################################################
+# multiple_registrations_oldsort <- multiple_registrations
+# multiple_registrations_oldsort <- 
+#   multiple_registrations_oldsort[order(multiple_registrations_oldsort$PERS_ID, multiple_registrations_oldsort$waitlist_end_date), ]
+# multiple_registrations_oldsort <- multiple_registrations_oldsort %>%
+#   mutate(list_type = case_when(
+#     CAN_LISTING_DT < lag(waitlist_end_date) ~ "concurrent",
+#     waitlist_end_date > lead(CAN_LISTING_DT) ~ "concurrent",
+#     TRUE ~ "sequential")) %>%
+#   mutate(REC_TX_DT = as.Date(REC_TX_DT)) %>%
+#   mutate(num_tx = length(unique(na.omit(REC_TX_DT)))) %>%
+#   fill(REC_TX_DT, .direction='downup')
+########################################################################
+
+
+
 multiple_registrations <- multiple_registrations %>%
   mutate(list_type = case_when(
     CAN_LISTING_DT < lag(waitlist_end_date) ~ "concurrent",
     waitlist_end_date > lead(CAN_LISTING_DT) ~ "concurrent",
-    TRUE ~ "sequential")
-  )
+    TRUE ~ "sequential")) %>%
+  mutate(REC_TX_DT = as.Date(REC_TX_DT)) %>%
+  mutate(num_tx = length(unique(na.omit(REC_TX_DT)))) %>%
+  fill(REC_TX_DT, .direction='downup')
+
+
+## Relocate order (sort) function
+multiple_registrations <- multiple_registrations[order(multiple_registrations$PERS_ID, multiple_registrations$waitlist_end_date), ]
+
+
+
+## A retransplant counter
+multiple_registrations$transplant_num <- 1
+
+
+## If transplant date changed from previous row to current row but person ID stayed the same, counter + 1
+for(i in 2:nrow(multiple_registrations)) {
+  if(multiple_registrations$PERS_ID[i-1] == multiple_registrations$PERS_ID[i] &
+     multiple_registrations$REC_TX_DT[i-1] != multiple_registrations$REC_TX_DT[i] &
+     !is.na(multiple_registrations$REC_TX_DT[i])) {
+    
+    multiple_registrations$transplant_num[i] = multiple_registrations$transplant_num[i-1] + 1
+     } 
+}
+
+## Previous step only changed the counter at the first instance where transplant date changed
+## So now we fill 'down' this new counter value
+## If the last row had a different counter value but person ID stayed the same, change this row's counter to the last row's
+for(i in 2:nrow(multiple_registrations)) {
+  if(multiple_registrations$PERS_ID[i-1] == multiple_registrations$PERS_ID[i] &
+     multiple_registrations$transplant_num[i-1] != multiple_registrations$transplant_num[i] &
+     multiple_registrations$transplant_num[i-1] != 1) {
+    
+    multiple_registrations$transplant_num[i] = multiple_registrations$transplant_num[i-1]
+     } 
+}
+
+## Change the counter value back to 0 for sequential
+multiple_registrations$transplant_num[multiple_registrations$list_type == 'sequential'] <- 0
+
+
 
 sequential_lists <- multiple_registrations %>%
   filter(list_type == "sequential") %>%
-  mutate(wait_time = waitlist_end_date - CAN_LISTING_DT,
+  mutate(min_list_date = CAN_LISTING_DT,
+         wait_time = waitlist_end_date - min_list_date,
          outcome = case_when(
            DON_TY == "C" ~ "DDKT",
            DON_TY == "L" ~ "LDKT",
@@ -115,8 +176,22 @@ sequential_lists <- multiple_registrations %>%
            TRUE ~ "censored"
          ))
 
-collapsed_concurrent_registrations <- multiple_registrations %>%
-  filter(list_type == "concurrent") %>%
+
+max_retransplants <- max(multiple_registrations$transplant_num)
+
+## Minimum list date for each concurrent transplant
+multiple_registrations <- multiple_registrations %>%
+  group_by(PERS_ID, transplant_num) %>%
+  mutate(min_list_date = min(CAN_LISTING_DT, na.rm=T))
+
+
+collapsed_concurrent_registrations <- NULL
+for(i in 1:max_retransplants) {
+  
+  collapsed_concurrent_registrations <- rbind(collapsed_concurrent_registrations, 
+        
+  multiple_registrations %>%
+  filter(list_type == "concurrent" & transplant_num == i) %>% ## Do it seperately for each transplant counter number
   mutate(DON_TY = ifelse(DON_TY == "", NA, DON_TY),
          last_wait_date = max(waitlist_end_date, na.rm = TRUE))%>%
   fill(REC_TX_DT, .direction = "up") %>%
@@ -125,16 +200,21 @@ collapsed_concurrent_registrations <- multiple_registrations %>%
   fill(CAN_REM_CD, .direction = "up") %>%
   #filter(row_number() ==1) %>%
   mutate(wait_time = case_when(
-    is.na(REC_TX_DT) == FALSE ~ REC_TX_DT- CAN_LISTING_DT,
-    TRUE ~ last_wait_date - CAN_LISTING_DT),
+    is.na(REC_TX_DT) == FALSE & transplant_num != '0' ~ REC_TX_DT- min_list_date, ### Added, ignore sequential rows
+    TRUE ~ last_wait_date - min_list_date),
     outcome = case_when(
            DON_TY == "C" ~ "DDKT",
            DON_TY == "L" ~ "LDKT",
            is.na(CAN_REM_CD) == FALSE ~ "removed/died",
            TRUE ~ "censored")
     ) %>%
-  filter(row_number() ==1) 
-
+  select(-c(waitlist_end_date, CAN_LISTING_DT, CAN_REM_DT)) %>%
+  filter(row_number() ==1) %>%
+  mutate(last_wait_date = case_when(
+    REC_TX_DT < last_wait_date ~ REC_TX_DT,
+    TRUE ~last_wait_date))) 
+  
+}
 
 ```
 
@@ -147,42 +227,138 @@ df_cand_kipa %>%
 
 ```{r}
 collapsed_concurrent_registrations %>%
-  select(PERS_ID, CAN_LISTING_DT, REC_TX_DT, DON_TY, CAN_REM_CD, last_wait_date, wait_time, outcome) %>%
+  ungroup() %>%
+  select(PERS_ID, min_list_date, REC_TX_DT, DON_TY, CAN_REM_CD, last_wait_date, wait_time, outcome) %>%
   filter(PERS_ID == 2235145)
 ```
 
 
-## Unresolved edge case
+## Resolved edge case - fixed
 - Candidate with multiple rounds of concurrent listings gets collapsed into a single observation `PERS_ID == 2255750`
 ```{r}
-multiple_registrations %>%
-  mutate(list_type = case_when(
-    CAN_LISTING_DT < lag(waitlist_end_date) ~ "concurrent",
-    waitlist_end_date > lead(CAN_LISTING_DT) ~ "concurrent",
-    TRUE ~ "sequential")
-  ) %>%
+multiple_registrations %>% 
+  group_by(PERS_ID) %>%
   mutate(list_num = row_number(),
          num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
-  filter(num_tx >1) %>% 
   select(PERS_ID, list_num, list_type, CAN_LISTING_DT, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID == '2255750')
+```
+
+### Second concurrent listing is included with correct data
+```{r}
+collapsed_concurrent_registrations %>%
+  select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
   filter(PERS_ID == 2255750)
 ```
 
-### second concurrent listing is dropped
+
+
+## Check a second edge case example to confirm 
+Candidate where the second waitlist observation ended after the third waitlist observation (before sorting), and the listing date requires a min listing date
+```{r}
+multiple_registrations %>%
+  group_by(PERS_ID) %>%
+  arrange(PERS_ID, CAN_LISTING_DT) %>% 
+  mutate(list_num = row_number(),
+         num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
+  select(PERS_ID, list_num, list_type, CAN_LISTING_DT, min_list_date, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID == 2232160)
+```
+
+
 ```{r}
 collapsed_concurrent_registrations %>%
-  select(PERS_ID, CAN_LISTING_DT, waitlist_end_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
-  filter(PERS_ID == 2255750)
+  select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
+  filter(PERS_ID == 2232160)
 ```
+
+# Look for other inconsistent cases
+```{r}
+sample_check <-df_cand_kipa %>%
+  select(PERS_ID, CAN_LISTING_CTR_ID, CAN_LISTING_DT, CAN_REM_DT, REC_TX_DT, DON_TY, CAN_REM_CD, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) %>%
+    group_by(PERS_ID) %>%
+    mutate(total_list = n()) %>%
+    filter(total_list > 5)
+
+sample_collapsed_concurrent_PERS_ID <- collapsed_concurrent_registrations %>%
+  filter(PERS_ID %in% sample_check$PERS_ID) %>%
+  select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
+  ungroup()
+
+sample_check %>% 
+  arrange(PERS_ID, CAN_LISTING_DT)
+```
+
+
+## Old dataset with earlier sort- list num 1 and 2 should be concurrent, while 6 should be sequential
+```{r}
+# multiple_registrations_oldsort %>%
+#   group_by(PERS_ID) %>%
+#   arrange(PERS_ID, CAN_LISTING_DT) %>% 
+#   mutate(list_num = row_number(),
+#          num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
+#   select(PERS_ID, list_num, list_type, CAN_LISTING_DT, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
+#   filter(PERS_ID==5117188)
+```
+
+
+## New dataset
+```{r}
+multiple_registrations %>%
+  group_by(PERS_ID) %>%
+  arrange(PERS_ID, CAN_LISTING_DT) %>% 
+  mutate(list_num = row_number(),
+         num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
+  select(PERS_ID, list_num, list_type, CAN_LISTING_DT, min_list_date, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID==5117188)
+```
+
+### Correct since latest waitlist end date is 1/14/2019, and transplanted 1/13/2019
+```{r}
+sample_collapsed_concurrent_PERS_ID %>%
+  filter(PERS_ID==5117188)
+```
+
+### Check sequential to confirm
+```{r}
+sequential_lists %>%
+  select(PERS_ID, list_type, CAN_LISTING_DT, waitlist_end_date, outcome, wait_time, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID==5117188)
+```
+
+
+
+## PX_ID = 2207056 to confirm no issues with 2207056
+```{r}
+multiple_registrations %>%
+  group_by(PERS_ID) %>%
+  arrange(PERS_ID, CAN_LISTING_DT) %>% 
+  mutate(list_num = row_number(),
+         num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
+  select(PERS_ID, list_num, list_type, CAN_LISTING_DT, min_list_date, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID==2207056)
+```
+
+```{r}
+collapsed_concurrent_registrations %>%
+  select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
+  filter(PERS_ID == 2207056)
+```
+ 
+
 
 # Recombine into analytic dataset
 ```{r}
-df_cand_kipa <- bind_rows(single_registrations, sequential_lists, collapsed_concurrent_registrations)
+df_cand_kipa <- bind_rows(single_registrations %>% ungroup(), 
+                          sequential_lists %>% ungroup(), 
+                          collapsed_concurrent_registrations %>% ungroup())
 
 unique_candidates <- df_cand_kipa %>% pull(PERS_ID) %>% n_distinct()
 unique_listings <- df_cand_kipa %>% nrow()
 
-rm(collapsed_concurrent_registrations, multiple_registrations, single_registrations, sequential_lists)
+rm(collapsed_concurrent_registrations, 
+   multiple_registrations, single_registrations, sequential_lists,
+   sample_check, sample_collapsed_concurrent_PERS_ID)
 ```
 
 # Number of living donor transplants 
@@ -198,38 +374,37 @@ if (living_donor_recips == FALSE) {
 
 
 # Add EPTS variables
-
 ## Dialysis time
 ```{r}
 df_cand_kipa <- df_cand_kipa %>% 
   mutate(
     dialysis_time_at_list = case_when(
-      is.na(CAN_DIAL_DT) | as.Date(CAN_LISTING_DT) < as.Date(CAN_DIAL_DT) ~ 0,
-      TRUE ~ as.numeric(difftime(CAN_LISTING_DT, CAN_DIAL_DT, units = 'weeks')) / 52.25),
+      is.na(CAN_DIAL_DT) | as.Date(min_list_date) < as.Date(CAN_DIAL_DT) ~ 0,
+      TRUE ~ as.numeric(difftime(min_list_date, CAN_DIAL_DT, units = 'weeks')) / 52.25),
     preemptive_listing = case_when(
       dialysis_time_at_list == 0 ~ 1,
       TRUE ~ 0),
     dialysis = case_when(
       preemptive_listing == 0 ~ 1,
       TRUE ~ 0),
-    dialysis_time_at_transplant = case_when(
-      is.na(REC_TX_DT) ~ NA,
-      is.na(CAN_DIAL_DT)  ~ 0,
-      TRUE ~ as.numeric(difftime(REC_TX_DT, CAN_DIAL_DT, units = 'weeks')) / 52.25),
-    preemptive_transplant = ifelse(dialysis_time_at_transplant == 0, 1, 0),
     living_donor = ifelse(outcome == "LDKT", 1, 0)
     )
+
+
+df_cand_kipa$dialysis_time_at_transplant <- as.numeric(difftime(df_cand_kipa$REC_TX_DT, df_cand_kipa$CAN_DIAL_DT, units = 'weeks')) / 52.25
+df_cand_kipa$dialysis_time_at_transplant[is.na(df_cand_kipa$CAN_DIAL_DT)] <- 0
+df_cand_kipa$dialysis_time_at_transplant[is.na(df_cand_kipa$REC_TX_DT)] <- NA
+df_cand_kipa$preemptive_transplant <- ifelse(df_cand_kipa$dialysis_time_at_transplant == 0, 1, 0)
 ```
 
 
-### Dialysis time at listing check
-
+## Dialysis time at listing (in years) check
 ```{r}
 df_cand_kipa %>%
-  select(CAN_LISTING_DT, CAN_DIAL_DT, dialysis_time_at_list, preemptive_listing, dialysis)
+  select(min_list_date, CAN_DIAL_DT, dialysis_time_at_list, preemptive_listing, dialysis)
 ```
 
-### Dialysis time at transplant check
+## Dialysis time at transplant check
 ```{r}
 df_cand_kipa %>%
   select(CAN_DIAL_DT, REC_TX_DT, dialysis_time_at_transplant, preemptive_transplant, living_donor, DON_TY) %>%
@@ -260,114 +435,150 @@ df_cand_kipa <- df_cand_kipa %>%
            1.262*(diabetes_cat==1))
 ```
 
+
+# NA EPTS values
+```{r}
+df_cand_kipa %>%
+  filter(is.na(raw_epts)) %>%
+  select(PERS_ID, CAN_AGE_AT_LISTING, diabetes_cat, CAN_PREV_TX, 
+         dialysis_time_at_list, CAN_DIAL_DT, CAN_LISTING_DT, PX_ID, min_list_date)
+```
+
+
+
 # EPTS mapping to percentiles
 ```{r}
 df_cand_kipa <- df_cand_kipa %>%
   mutate(percentile_epts = case_when(
-           raw_epts <= 0.03659817399191 ~ 0,
-           raw_epts <= 0.25452908966461 ~ 1,
-           raw_epts <= 0.42352944598300 ~ 2,
-           raw_epts <= 0.53003080082136 ~ 3,
-           raw_epts <= 0.62358042436687 ~ 4,
-           raw_epts <= 0.71575920635007 ~ 5,
-           raw_epts <= 0.79651301542106 ~ 6,
-           raw_epts <= 0.86920864832432 ~ 7,
-           raw_epts <= 0.93691375770021 ~ 8,
-           raw_epts <= 1.00115259133800 ~ 9,
-           raw_epts <= 1.06147501711157 ~ 10,
-           raw_epts <= 1.11886399323084 ~ 11,
-           raw_epts <= 1.17274132750756 ~ 12,
-           raw_epts <= 1.22455411031063 ~ 13,
-           raw_epts <= 1.27405270362765 ~ 14,
-           raw_epts <= 1.32239366251146 ~ 15,
-           raw_epts <= 1.36840427006353 ~ 16,
-           raw_epts <= 1.41186789869952 ~ 17,
-           raw_epts <= 1.45301619533377 ~ 18,
-           raw_epts <= 1.49435112936345 ~ 19,
-           raw_epts <= 1.53286770421574 ~ 20,
-           raw_epts <= 1.57155441478439 ~ 21,
-           raw_epts <= 1.60668450477357 ~ 22,
-           raw_epts <= 1.64078781656400 ~ 23,
-           raw_epts <= 1.67138347106792 ~ 24,
-           raw_epts <= 1.70048254984577 ~ 25,
-           raw_epts <= 1.72867145790554 ~ 26,
-           raw_epts <= 1.75678302532512 ~ 27,
-           raw_epts <= 1.78276238577397 ~ 28,
-           raw_epts <= 1.80864887063655 ~ 29,
-           raw_epts <= 1.83411430527036 ~ 30,
-           raw_epts <= 1.85819479732733 ~ 31,
-           raw_epts <= 1.88139546861610 ~ 32,
-           raw_epts <= 1.90423427159151 ~ 33,
-           raw_epts <= 1.92684448967469 ~ 34,
-           raw_epts <= 1.95017274194208 ~ 35,
-           raw_epts <= 1.97209769030884 ~ 36,
-           raw_epts <= 1.99285503839760 ~ 37,
-           raw_epts <= 2.01466894405460 ~ 38,
-           raw_epts <= 2.03390212183436 ~ 39,
-           raw_epts <= 2.05369746748802 ~ 40,
-           raw_epts <= 2.07340246406571 ~ 41,
-           raw_epts <= 2.09208772554548 ~ 42,
-           raw_epts <= 2.11008008213552 ~ 43,
-           raw_epts <= 2.12825462012320 ~ 44,
-           raw_epts <= 2.14538566530003 ~ 45,
-           raw_epts <= 2.16347433264887 ~ 46,
-           raw_epts <= 2.17963031413852 ~ 47,
-           raw_epts <= 2.19604187305641 ~ 48,
-           raw_epts <= 2.21302327173169 ~ 49,
-           raw_epts <= 2.22890885657669 ~ 50,
-           raw_epts <= 2.24521560574949 ~ 51,
-           raw_epts <= 2.26099514620549 ~ 52,
-           raw_epts <= 2.27693714028400 ~ 53,
-           raw_epts <= 2.29328883840429 ~ 54,
-           raw_epts <= 2.30873374401095 ~ 55,
-           raw_epts <= 2.32508761122519 ~ 56,
-           raw_epts <= 2.34046399709776 ~ 57,
-           raw_epts <= 2.35469883641342 ~ 58,
-           raw_epts <= 2.36976221190132 ~ 59,
-           raw_epts <= 2.38548117727584 ~ 60,
-           raw_epts <= 2.40080210992761 ~ 61,
-           raw_epts <= 2.41601323013786 ~ 62,
-           raw_epts <= 2.43071022841615 ~ 63,
-           raw_epts <= 2.44635936535286 ~ 64,
-           raw_epts <= 2.46081562059785 ~ 65,
-           raw_epts <= 2.47507281008807 ~ 66,
-           raw_epts <= 2.49097050616980 ~ 67,
-           raw_epts <= 2.50655989048597 ~ 68,
-           raw_epts <= 2.52244591190598 ~ 69,
-           raw_epts <= 2.53838298001874 ~ 70,
-           raw_epts <= 2.55365614791238 ~ 71,
-           raw_epts <= 2.56946475017112 ~ 72,
-           raw_epts <= 2.58636928647468 ~ 73,
-           raw_epts <= 2.60244038836947 ~ 74,
-           raw_epts <= 2.61972240525357 ~ 75,
-           raw_epts <= 2.63526078028747 ~ 76,
-           raw_epts <= 2.65245419737158 ~ 77,
-           raw_epts <= 2.67072065357604 ~ 78,
-           raw_epts <= 2.68757487707999 ~ 79,
-           raw_epts <= 2.70595570009828 ~ 80,
-           raw_epts <= 2.72401095140315 ~ 81,
-           raw_epts <= 2.74286793947642 ~ 82,
-           raw_epts <= 2.76238315880849 ~ 83,
-           raw_epts <= 2.78086498100229 ~ 84,
-           raw_epts <= 2.80019769964201 ~ 85,
-           raw_epts <= 2.82065812497000 ~ 86,
-           raw_epts <= 2.84154403217207 ~ 87,
-           raw_epts <= 2.86302665309162 ~ 88,
-           raw_epts <= 2.88448137367205 ~ 89,
-           raw_epts <= 2.90710010789073 ~ 90,
-           raw_epts <= 2.93088554597975 ~ 91,
-           raw_epts <= 2.95633172813984 ~ 92,
-           raw_epts <= 2.98243616034011 ~ 93,
-           raw_epts <= 3.01100193655189 ~ 94,
-           raw_epts <= 3.04363481752507 ~ 95,
-           raw_epts <= 3.07945530651501 ~ 96,
-           raw_epts <= 3.11944421677048 ~ 97,
-           raw_epts <= 3.17254475204181 ~ 98,
-           TRUE ~ 100)) %>%
+           raw_epts <= 0.01842385502984 ~ 0,
+           raw_epts <= 0.23587063655031 ~ 1,
+           raw_epts <= 0.41885215605749 ~ 2,
+           raw_epts <= 0.52800000000000 ~ 3,
+           raw_epts <= 0.62852561015766 ~ 4,
+           
+           raw_epts <= 0.71352703627652 ~ 5,
+           raw_epts <= 0.79220296573099 ~ 6,
+           raw_epts <= 0.86714433496842 ~ 7,
+           raw_epts <= 0.93047980835044 ~ 8,
+           raw_epts <= 0.99391854893908 ~ 9,
+           
+           raw_epts <= 1.05598976270380 ~ 10,
+           raw_epts <= 1.11434794060852 ~ 11,
+           raw_epts <= 1.17045574165807 ~ 12,
+           raw_epts <= 1.22030049020253 ~ 13,
+           raw_epts <= 1.27212500074301 ~ 14,
+           
+           raw_epts <= 1.31913766912690 ~ 15,
+           raw_epts <= 1.36438535249829 ~ 16,
+           raw_epts <= 1.41168240930869 ~ 17,
+           raw_epts <= 1.45433196440794 ~ 18,
+           raw_epts <= 1.49473716632444 ~ 19,
+           
+           raw_epts <= 1.53514236824093 ~ 20,
+           raw_epts <= 1.57300507228037 ~ 21,
+           raw_epts <= 1.60810335386721 ~ 22,
+           raw_epts <= 1.64297604380561 ~ 23,
+           raw_epts <= 1.67354110859117 ~ 24,
+           
+           raw_epts <= 1.70255373032170 ~ 25,
+           raw_epts <= 1.73150650239562 ~ 26,
+           raw_epts <= 1.75869376757638 ~ 27,
+           raw_epts <= 1.78477960301164 ~ 28,
+           raw_epts <= 1.81180219028063 ~ 29,
+           
+           raw_epts <= 1.83683495289066 ~ 30,
+           raw_epts <= 1.86060232717317 ~ 31,
+           raw_epts <= 1.88375164234518 ~ 32,
+           raw_epts <= 1.90727234572108 ~ 33,
+           raw_epts <= 1.92941067761807 ~ 34,
+           
+           raw_epts <= 1.95149964313427 ~ 35,
+           raw_epts <= 1.97370841889117 ~ 36,
+           raw_epts <= 1.99414162335253 ~ 37,
+           raw_epts <= 2.01486542476192 ~ 38,
+           raw_epts <= 2.03323308735222 ~ 39,
+           
+           raw_epts <= 2.05397604380561 ~ 40,
+           raw_epts <= 2.07327619854998 ~ 41,
+           raw_epts <= 2.09202182261888 ~ 42,
+           raw_epts <= 2.11055715263518 ~ 43,
+           raw_epts <= 2.12710952613370 ~ 44,
+           
+           raw_epts <= 2.14469472963723 ~ 45,
+           raw_epts <= 2.16206639288159 ~ 46,
+           raw_epts <= 2.17895804742641 ~ 47,
+           raw_epts <= 2.19533620671360 ~ 48,
+           raw_epts <= 2.21202975619422 ~ 49,
+           
+           raw_epts <= 2.22830663928816 ~ 50,
+           raw_epts <= 2.24486516084873 ~ 51,
+           raw_epts <= 2.25934770704997 ~ 52,
+           raw_epts <= 2.27457912196537 ~ 53,
+           raw_epts <= 2.29007370896616 ~ 54,
+           
+           raw_epts <= 2.30555527524319 ~ 55,
+           raw_epts <= 2.32162833675565 ~ 56,
+           raw_epts <= 2.33676297950084 ~ 57,
+           raw_epts <= 2.35264238040105 ~ 58,
+           raw_epts <= 2.36804654346338 ~ 59,
+           
+           raw_epts <= 2.38288012607080 ~ 60,
+           raw_epts <= 2.39744314980323 ~ 61,
+           raw_epts <= 2.41176454483231 ~ 62,
+           raw_epts <= 2.42661080994812 ~ 63,
+           raw_epts <= 2.44143904753026 ~ 64,
+           
+           raw_epts <= 2.45616599664439 ~ 65,
+           raw_epts <= 2.47046406570842 ~ 66,
+           raw_epts <= 2.48541673804140 ~ 67,
+           raw_epts <= 2.50082593655723 ~ 68,
+           raw_epts <= 2.51575906913073 ~ 69,
+           
+           raw_epts <= 2.53179041411307 ~ 70,
+           raw_epts <= 2.54847145496397 ~ 71,
+           raw_epts <= 2.56450211494358 ~ 72,
+           raw_epts <= 2.58056343072585 ~ 73,
+           raw_epts <= 2.59622536132146 ~ 74,
+           
+           raw_epts <= 2.61220575225961 ~ 75,
+           raw_epts <= 2.62980229727812 ~ 76,
+           raw_epts <= 2.64633742797854 ~ 77,
+           raw_epts <= 2.66270836678796 ~ 78,
+           raw_epts <= 2.68071428443369 ~ 79,
+           
+           raw_epts <= 2.69965721597721 ~ 80,
+           raw_epts <= 2.71924640657084 ~ 81,
+           raw_epts <= 2.73853621699103 ~ 82,
+           raw_epts <= 2.75778147760295 ~ 83,
+           raw_epts <= 2.77728756159785 ~ 84,
+           
+           raw_epts <= 2.79719224080293 ~ 85,
+           raw_epts <= 2.81884538728167 ~ 86,
+           raw_epts <= 2.83956718767238 ~ 87,
+           raw_epts <= 2.86117343797221 ~ 88,
+           raw_epts <= 2.88458357309819 ~ 89,
+           
+           raw_epts <= 2.90679669457193 ~ 90,
+           raw_epts <= 2.93187604974332 ~ 91,
+           raw_epts <= 2.95563732458239 ~ 92,
+           raw_epts <= 2.98192663471240 ~ 93,
+           raw_epts <= 3.01041956645050 ~ 94,
+           
+           raw_epts <= 3.04211557588171 ~ 95,
+           raw_epts <= 3.07653689699372 ~ 96,
+           raw_epts <= 3.11838513945413 ~ 97,
+           raw_epts <= 3.17159971150431 ~ 98,
+           raw_epts <= 3.24849418211424 ~ 99,
+           TRUE ~ 100)) 
   
+## Extra line to remove missings
+df_cand_kipa$percentile_epts[is.na(df_cand_kipa$raw_epts)] <- NA
+
+df_cand_kipa <- df_cand_kipa %>%
   mutate(top_percentile_epts = case_when(
-    percentile_epts <= 20 ~ '1', 
+    percentile_epts <= 20 & !is.na(percentile_epts) ~ '1', 
     TRUE ~ '0')) 
+
 
 df_cand_kipa$top_percentile_epts = factor(df_cand_kipa$top_percentile_epts, levels=c(0,1))
 ```
@@ -384,6 +595,16 @@ df_cand_kipa %>%
   ggplot(aes(x = CAN_AGE_AT_LISTING, y = percentile_epts, color = factor(preemptive_listing), shape = factor(diabetes_cat)))+
   geom_point()
 ```
+
+
+## Examine cases where EPTS is 100
+## The lower cutoff for 100% EPTS is roughly 3.248
+```{r}
+df_cand_kipa %>%
+  filter(percentile_epts == 100) %>%
+  select(PX_ID, raw_epts, CAN_AGE_AT_LISTING, CAN_RACE, diabetes_cat, CAN_AGE_AT_LISTING, dialysis_time_at_list, CAN_PREV_TX)
+```
+
 
 
 # Demographic variables
@@ -465,7 +686,7 @@ df_cand_kipa %>%
 ```
 
 
-## label top 20% KDPI category and check outcomes
+## Label top 20% KDPI category and check outcomes
 ```{r}
 # df_cand_kipa <- df_cand_kipa %>%
 #   left_join(df_kdpi) %>%
@@ -483,9 +704,9 @@ df_cand_kipa %>%
 #             num_outcomes = n())
 ```
 
-## select final variables
+## Select final variables
 ```{r}
-##to code
+##Add after KDPI fixed
 ```
 
 
