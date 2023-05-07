@@ -1,0 +1,246 @@
+---
+title: "Candidate File Prep for EPTS Inequity"
+output: html_document
+authors: Jessica Lu, Kevin Zhang, Nour Asfour, and William Parker
+---
+
+```{r setup, include=FALSE}
+rm(list=ls()); gc()
+knitr::opts_chunk$set(echo = TRUE)
+if (!require('pacman')) {install.packages('pacman')}
+library(pacman)
+pacman::p_load(haven, lubridate, tidyverse, readr, gtsummary)
+knitr::opts_chunk$set(echo = FALSE)
+options(scipen = 999)
+setwd('C:/Users/kevinz94/Desktop/EPTS_Score') ### Change according to your directory
+```
+
+
+```{r, warning=F, comment=NA}
+donordata <- read_sas('./donor_deceased.sas7bdat')
+donordisp <- read_sas('./donor_disposition.sas7bdat') 
+
+nrow(donordata)
+nrow(donordisp)
+```
+
+## Clean up donor disposition and modify
+```{r, warning=F, comment=NA}
+decade_start_date <- ymd(20100101)
+decade_end_date <- ymd(20221231)
+kidney_codes <- c('EKI', 'LKI', 'RKI')
+recovery_codes <- c(5,6)
+
+donordisp <- donordisp %>%
+    filter(DON_RECOV_DT >= decade_start_date & DON_RECOV_DT <= decade_end_date) %>%
+    filter(DON_ORG %in% kidney_codes & DON_DISPOSITION %in% recovery_codes) %>%
+    select(DONOR_ID, DON_DISPOSITION, DON_ORG, DON_RECOV_DT, PX_ID)
+
+
+donordata <- filter(donordata, DONOR_ID %in% donordisp$DONOR_ID) %>%
+  mutate(year = year(DON_RECOV_DT))
+
+
+donordata <- donordata %>%
+  mutate(dcd = case_when(
+    is.na(DON_DCD_AGONAL_BEGIN_TM) == TRUE ~ 0,
+    is.na(DON_DCD_AGONAL_BEGIN_TM) == FALSE ~ 1)) 
+
+
+# HCV positive
+donordata <- donordata %>%
+  mutate(hcv = if_else(DON_HCV_NAT == 'P' | DON_HCV_STAT == '1', 1, 0))
+
+# Cause of death = cerebrovascular/stroke
+donordata <- donordata %>%
+  mutate(cod_cva = if_else(DON_CAD_DON_COD == 2, 1, 0))
+
+
+### Capped value- see page 10 of https://optn.transplant.hrsa.gov/media/1512/guide_to_calculating_interpreting_kdpi.pdf
+# Cap creatinine values at 8 
+# Cap height at 241.3 cm
+# Cap weight between 0.454 kg (1 lb) and 294 kg (650 lb)
+donordata <- donordata %>% 
+  mutate(
+    creatinine_capped = case_when(
+      !is.na(DON_CREAT) & DON_CREAT > 8 ~ 8,
+      TRUE ~ DON_CREAT),
+    
+    height_capped = case_when(
+      !is.na(DON_HGT_CM) & DON_HGT_CM > 241.3 ~ 241.3,
+      TRUE ~ DON_HGT_CM),
+    
+    weight_capped = case_when(
+      !is.na(DON_WGT_KG) & DON_WGT_KG > 294 ~ 294,
+      !is.na(DON_WGT_KG) & DON_WGT_KG < 0.454 ~ 0.454,
+      TRUE ~ DON_WGT_KG),
+    
+    weight_indicator = if_else(weight_capped < 80, 1, 0))
+
+
+donordata <- donordata %>%  
+  mutate(
+    diabetes_modified = case_when(
+    DON_HIST_DIAB == '1' ~ 0,
+    DON_HIST_DIAB == '2' |  DON_HIST_DIAB == '3' | DON_HIST_DIAB == '4' | DON_HIST_DIAB == '5' ~ 1,
+    DON_HIST_DIAB == '998' ~ 0.12267292265779,
+    TRUE ~ as.numeric(NA)),
+    
+    hypertension_modified = case_when(
+    DON_HIST_HYPERTEN == '1' ~ 0,
+    DON_HIST_HYPERTEN == '2' |  DON_HIST_HYPERTEN == '3' | DON_HIST_HYPERTEN == '4' | DON_HIST_HYPERTEN == '5' ~ 1,
+    DON_HIST_HYPERTEN == '998' ~ 0.34925079461178,
+    TRUE ~ as.numeric(NA)))
+           
+           
+
+donordata <- donordata %>%
+  select(DONOR_ID, DON_HIGH_CREAT, DON_RECOV_DT, DON_AGE, DON_RACE_BLACK_AFRICAN_AMERICAN, DON_HIGH_CREAT, 
+         creatinine_capped, height_capped, weight_capped, weight_indicator, 
+         hypertension_modified, diabetes_modified, cod_cva, year, hcv, dcd)
+```
+
+
+## Generate KDRI_Rao
+```{r, warning=F, comment=NA}
+donordata <- donordata %>% 
+  mutate(kdri_rao = case_when(
+    (DON_AGE < 18 & DON_HIGH_CREAT == 1) ~ 
+      exp(.0128*(DON_AGE-40) - .0194*(DON_AGE-18) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 +
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) - .2090*(creatinine_capped-1.5) +
+            .2400*hcv + .1330*dcd),
+    
+    
+    (DON_AGE < 18 & DON_HIGH_CREAT == 0) ~ 
+      exp(.0128*(DON_AGE-40) - .0194*(DON_AGE-18) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 +
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) + .2400*hcv + .1330*dcd),
+    
+    
+    (DON_AGE <= 50 & DON_AGE >= 18 & DON_HIGH_CREAT == 1) ~ 
+      exp(.0128*(DON_AGE-40) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 + 
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) - .2090*(creatinine_capped-1.5) + .2400*hcv + .1330*dcd),
+    
+    
+     (DON_AGE <= 50 & DON_AGE >= 18 & DON_HIGH_CREAT == 0) ~ 
+      exp(.0128*(DON_AGE-40) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 + 
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) - + .2400*hcv + .1330*dcd),
+    
+    
+     (DON_AGE > 50 & DON_HIGH_CREAT == 1) ~ 
+      exp(.0128*(DON_AGE-40) + .0107*(DON_AGE-50) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 +
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) - .2090*(creatinine_capped-1.5) + .2400*hcv + .1330*dcd),
+    
+    
+     (DON_AGE > 50 & DON_HIGH_CREAT == 0) ~ 
+      exp(.0128*(DON_AGE-40) + .0107*(DON_AGE-50) - 
+            .0464*(height_capped - 170)/10 - .0199*weight_indicator*(weight_capped - 80)/5 +
+            .1790*DON_RACE_BLACK_AFRICAN_AMERICAN + .1260*hypertension_modified + .1300*diabetes_modified + .0881*cod_cva + 
+            .2200*(creatinine_capped - 1) + .2400*hcv + .1330*dcd)
+  ))
+```
+
+## Divide by median KDRI_Rao
+```{r, warning=F, comment=NA}
+donordata <- donordata %>% #kdri med
+  mutate(kdri_med =  kdri_rao/1.318253823684) # 2021 scaling factor
+donordata <- filter(donordata, is.na(kdri_med) == FALSE)
+```
+
+
+## Map to KDPI
+```{r, warning=F, comment=NA}
+kdpi_mapping_table <- read.csv('kdpi_mapping_table_mod.csv')
+
+donordata <- donordata %>% mutate(
+  kdpi = cut(kdri_med, c(0, as.vector(kdpi_mapping_table$max)), labels=seq(0, 100)), include.lowest = FALSE)
+
+donordata <- donordata %>% arrange(kdpi)
+```
+
+
+
+## Check with official calculator online to confirm; weight is in kg, height in cm
+Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death, pick 'YES, 0-5 YEARS' for both history of hypertension and history of diabetes. 'kdpi_med' is equivalent to 'KDPI' on the online calculator.
+```{r, warning=F, comment=NA}
+set.seed(200)
+sample_donors <- sample(donordata$DONOR_ID, size=5, replace=F)
+
+
+donordata %>%
+  filter(DONOR_ID %in% sample_donors) %>%
+  select(kdri_med, kdpi, DON_AGE, weight_capped, height_capped, DON_RACE_BLACK_AFRICAN_AMERICAN, hypertension_modified,
+         diabetes_modified, cod_cva, creatinine_capped, hcv, dcd)
+```
+
+### Check cases when age < 18, weight < 80, Black/AA, hypertension, diabetes 
+```{r, warning=F, comment=NA}
+donordata %>%
+  filter(DON_AGE < 18 & weight_capped < 80 & DON_RACE_BLACK_AFRICAN_AMERICAN=='1' &
+          hypertension_modified=='1' & diabetes_modified=='1') %>%
+  select(kdri_med, kdpi, DON_AGE, weight_capped, height_capped, DON_RACE_BLACK_AFRICAN_AMERICAN, hypertension_modified,
+         diabetes_modified, cod_cva, creatinine_capped, hcv, dcd)
+```
+
+### Check cases when age > 50, CVA, creatine > 1.5, HCV, DCD, hypertension unknown, diabetes unknown
+```{r, warning=F, comment=NA}
+donordata %>%
+  filter(DON_AGE > 50 & cod_cva=='1' & creatinine_capped > 1.5, hcv=='1' & dcd=='1' & 
+           hypertension_modified==0.34925079461178 & diabetes_modified==0.12267292265779) %>%
+  select(kdri_med, kdpi, DON_AGE, weight_capped, height_capped, DON_RACE_BLACK_AFRICAN_AMERICAN, hypertension_modified,
+         diabetes_modified, cod_cva, creatinine_capped, hcv, dcd)
+```
+
+### Confirm again that hypertension unknown and diabetes unknown is correct
+```{r, warning=F, comment=NA}
+donordata %>%
+  filter(DON_AGE < 18 & hypertension_modified==0.34925079461178 & diabetes_modified==0.12267292265779) %>%
+  select(kdri_med, kdpi, DON_AGE, weight_capped, height_capped, DON_RACE_BLACK_AFRICAN_AMERICAN, hypertension_modified,
+         diabetes_modified, cod_cva, creatinine_capped, hcv, dcd)
+```
+
+
+
+## Generate recipient data
+```{r, warning=F, comment=NA}
+recipdata <- read_sas('tx_ki.sas7bdat') 
+nrow(recipdata)
+
+
+recipdata <- filter(recipdata, DONOR_ID %in% donordata$DONOR_ID)
+
+recipdata <- recipdata  %>%
+  mutate(cutoff=as.Date('2022-12-31'))%>%
+  filter(REC_TX_DT <= cutoff) %>%
+  mutate(endtime = case_when(
+    (is.na(TFL_GRAFT_DT) == FALSE ~ pmin(cutoff, TFL_GRAFT_DT)),
+    (is.na(TFL_DEATH_DT)==FALSE | is.na(PERS_OPTN_DEATH_DT)==FALSE | is.na(PERS_SSA_DEATH_DT)==FALSE) ~ 
+      pmin(cutoff,pmin(TFL_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, na.rm = TRUE)),
+    (is.na(TFL_GRAFT_DT) == TRUE & is.na(TFL_DEATH_DT) ==TRUE & is.na(PERS_OPTN_DEATH_DT) ==TRUE & is.na(PERS_SSA_DEATH_DT) ==TRUE) ~
+      pmin(cutoff, TFL_LAFUDATE, na.rm = TRUE)
+    )
+  )
+
+recipdata <- recipdata %>%
+  mutate(status = if_else(TFL_LASTATUS=='D' | TFL_LASTATUS =='R', 1, 0)) %>% #dead = 1, censored = 0
+  mutate(survtime = as.numeric(difftime(endtime, REC_TX_DT, units = c('days')))) %>%
+  select(DONOR_ID, REC_TX_DT, REC_TX_PROCEDURE_TY, survtime, TFL_GRAFT_DT, TFL_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, endtime, TFL_LASTATUS, TFL_LAFUDATE, status) %>% arrange(DONOR_ID)
+```
+
+
+## Combine donor and recipient data
+```{r, warning=F, comment=NA}
+fulldata <- donordata %>% right_join(recipdata,  by = c('DONOR_ID'))
+
+
+write_csv(fulldata, 'fulldata_for_epts.csv')
+```
