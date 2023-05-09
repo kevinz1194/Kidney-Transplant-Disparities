@@ -1,9 +1,5 @@
-*.Rproj.user
-*.Rhistory
-*.RData
-*.Ruserdata
-
-*.Rproj
-*.sas7bdat
-*.csv
-.Rproj.user
+*
+!.gitignore
+!*.rmd
+!*.R
+!*.md
