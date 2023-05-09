@@ -10,7 +10,6 @@
 #
 ################################################
 rm(list=ls()); gc()
-setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
@@ -24,16 +23,14 @@ pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
 ## Limit data to 2015-2020 and exclude live donor recipients, age 18 or older
 df_tx_ki <- haven::read_sas('./tx_ki.sas7bdat')
 df_tx_ki <- df_tx_ki %>%
-  filter(as.Date(CAN_LISTING_DT) >= '2015-01-01' & as.Date(CAN_LISTING_DT) <= '2020-12-31') %>%
+  filter(as.Date(REC_TX_DT) >= '2015-01-01' & as.Date(REC_TX_DT) <= '2020-12-31') %>%
   filter(ORG_TY== 'KI') %>%
   filter(CAN_AGE_AT_LISTING >= 18) %>%
   
   select(PX_ID, PERS_ID, CAN_RACE, CAN_GENDER, CAN_LISTING_DT,
          CAN_PREV_TX, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, CAN_DIAB_TY,
          TFL_DEATH_DT, TFL_LAFUDATE, REC_PRETX_DIAL, REC_DIAL_DT, REC_AGE_AT_TX, REC_TX_DT,
-         TFL_GRAFT_DT, DON_TY) %>%
-  
-  filter(CAN_DIAB_TY != '998')
+         TFL_GRAFT_DT, DON_TY)
 
 
 df_tx_ki <- expss::drop_all_labels(df_tx_ki) 
@@ -160,11 +157,11 @@ df_recipients$dialysis_time_at_transplant <- -round(df_recipients$dialysis_time_
 df_recipients <- df_recipients %>% 
   mutate(time_to_death_function = 
            case_when(!is.na(death_date_tx) == '1' ~ 
-                       as.numeric(as.Date(death_date_tx) - as.Date(listing_dt_tx), units = 'days')))
+                       as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days')))
 
 ### Time to graft failure
 df_recipients$time_graft_failure <- 
-  as.numeric(df_recipients$graft_failure_dt - df_recipients$listing_dt_tx, units = 'days')
+  as.numeric(df_recipients$graft_failure_dt - df_recipients$transplant_date_tx, units = 'days')
 
 
 ### Graft survival time 
@@ -172,12 +169,12 @@ df_recipients <- df_recipients %>%
   mutate(time_graft_survival = 
            case_when(
              !is.na(death_date_tx) | !is.na(graft_failure_dt) ~
-               as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - listing_dt_tx, 
+               as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - transplant_date_tx, 
                           units = 'days')))
 
 
 ### Time to followup
-df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$listing_dt_tx, units = 'days')
+df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$transplant_date_tx, units = 'days')
 
 
 
