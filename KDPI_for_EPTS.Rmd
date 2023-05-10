@@ -1,5 +1,5 @@
 ---
-title: "Candidate File Prep for EPTS Inequity"
+title: "KDPI Score File Prep for EPTS Inequity"
 output: html_document
 authors: Jessica Lu, Kevin Zhang, Nour Asfour, and William Parker
 ---
@@ -12,7 +12,6 @@ library(pacman)
 pacman::p_load(haven, lubridate, tidyverse, readr, gtsummary)
 knitr::opts_chunk$set(echo = FALSE)
 options(scipen = 999)
-setwd('C:/Users/kevinz94/Desktop/EPTS_Score') ### Change according to your directory
 ```
 
 
