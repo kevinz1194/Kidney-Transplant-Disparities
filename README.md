@@ -18,6 +18,8 @@ Sets up an alternative version of the candidates dataset. Includes those transpl
 
 Updated 3/8/23: Added.
 
+Updated 5/9/23: Removed.
+
 
 ### 3. recipients.R
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data.
