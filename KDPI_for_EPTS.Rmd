@@ -18,9 +18,6 @@ options(scipen = 999)
 ```{r, warning=F, comment=NA}
 donordata <- read_sas('./donor_deceased.sas7bdat')
 donordisp <- read_sas('./donor_disposition.sas7bdat') 
-
-nrow(donordata)
-nrow(donordisp)
 ```
 
 ## Clean up donor disposition and modify
@@ -169,9 +166,8 @@ donordata <- donordata %>% arrange(kdpi)
 
 
 ## Check with official calculator online to confirm; weight is in kg, height in cm
-Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death, pick 'YES, 0-5 YEARS' for both history of hypertension and history of diabetes. 'kdpi_med' is equivalent to 'KDPI' on the online calculator.
+Note that weight_capped is in kg and height_capped is in cm. Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death if cod_cva is 0 and 'CEREBROVASCULAR/STROKE' of cod_cva is 1, pick 'YES, 0-5 YEARS' for history of hypertension and history of diabetes if they are equal to 1; otherwise pick 'NO'. 'kdpi_med' is equivalent to 'KDRI' on the online calculator. 
 ```{r, warning=F, comment=NA}
-set.seed(200)
 sample_donors <- sample(donordata$DONOR_ID, size=5, replace=F)
 
 
@@ -199,7 +195,7 @@ donordata %>%
          diabetes_modified, cod_cva, creatinine_capped, hcv, dcd)
 ```
 
-### Confirm again that hypertension unknown and diabetes unknown is correct
+### Confirm again that hypertension unknown and diabetes unknown is correct for age < 18
 ```{r, warning=F, comment=NA}
 donordata %>%
   filter(DON_AGE < 18 & hypertension_modified==0.34925079461178 & diabetes_modified==0.12267292265779) %>%
@@ -212,7 +208,6 @@ donordata %>%
 ## Generate recipient data
 ```{r, warning=F, comment=NA}
 recipdata <- read_sas('tx_ki.sas7bdat') 
-nrow(recipdata)
 
 
 recipdata <- filter(recipdata, DONOR_ID %in% donordata$DONOR_ID)
