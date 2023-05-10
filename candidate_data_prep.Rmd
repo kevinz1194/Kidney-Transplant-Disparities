@@ -1,5 +1,5 @@
 ---
-title: "Candidate file prep for EPTS inequity"
+title: "Candidate File Prep for EPTS Inequity"
 output:
   html_document:
     toc: true
@@ -8,45 +8,47 @@ authors: Nour Asfour, Kevin Zhang, and William Parker
 ---
 
 
-```{r package_load}
+```{r setup, include=FALSE}
+rm(list=ls()); invisible(gc())
 library(tidyverse)
 library(lubridate)
 library(haven)
-```
 
-```{r key_parameters_patient_population}
+
 start_date <- '2015-01-01'
 end_date <- '2020-12-31'
 living_donor_recips <- TRUE
 ```
 
 
-# Identify Adult Kidney-alone registrations from `r start_date` to `r end_date`
-```{r load_in_data}
+# Identify adult kidney-alone registrations from `r start_date` to `r end_date`
+```{r, warning=F, comment=NA}
 df_cand_kipa_all <- haven::read_sas('./cand_kipa.sas7bdat') %>%
   filter(as.Date(CAN_LISTING_DT) >= start_date & as.Date(CAN_LISTING_DT) <= end_date) %>%
   filter(WL_ORG == 'KI') %>%
   filter(CAN_AGE_AT_LISTING >= 18)
 
+
 num_adult_registrations <- df_cand_kipa_all$PX_ID %>% unique() %>% length()
+num_adult_registrations
 ```
 
 
-# create waitlist time end date for each `PX_ID` registration
-```{r}
+# Create waitlist time end date for each patient registration
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa_all %>%
   mutate(waitlist_end_date = case_when(
     is.na(REC_TX_DT) == FALSE ~ REC_TX_DT,
     is.na(CAN_REM_DT) == FALSE ~ CAN_REM_DT,
     is.na(CAN_LAST_INACT_STAT_DT) == FALSE & CAN_LAST_INACT_STAT_DT > CAN_LAST_ACT_STAT_DT ~ CAN_LAST_INACT_STAT_DT,
-    TRUE ~CAN_LAST_ACT_STAT_DT
-  ))
+    TRUE ~ CAN_LAST_ACT_STAT_DT)
+    )
 ```
 
 
 
-# create wait time and outcome variable for candidates with a single registration
-```{r}
+# Create wait time and outcome variables for candidates with a single registration
+```{r, warning=F, comment=NA}
 single_registrations <- df_cand_kipa %>%
   group_by(PERS_ID) %>%
   mutate(num_list = n()) %>%
@@ -61,6 +63,7 @@ single_registrations <- df_cand_kipa %>%
            TRUE ~ "censored"
          ))
 
+
 single_registrations %>%
   select(CAN_LISTING_DT, min_list_date, CAN_REM_DT, CAN_REM_CD, REC_TX_DT, waitlist_end_date, wait_time, outcome) %>%
   count(outcome)
@@ -69,7 +72,7 @@ single_registrations %>%
 
 
 # Create a single record for candidates with multiple concurrent registrations
-```{r}
+```{r, warning=F, comment=NA}
 multiple_registrations <- df_cand_kipa %>%
   filter(!PX_ID %in% single_registrations$PX_ID) %>%
   group_by(PERS_ID) %>%
@@ -84,23 +87,7 @@ avg_num_registrations_multiple <- mean(multiple_registrations %>% group_by(PERS_
 
 
 ## Seperate sequential and consecutive registrations
-```{r}
-########################################################################
-# multiple_registrations_oldsort <- multiple_registrations
-# multiple_registrations_oldsort <- 
-#   multiple_registrations_oldsort[order(multiple_registrations_oldsort$PERS_ID, multiple_registrations_oldsort$waitlist_end_date), ]
-# multiple_registrations_oldsort <- multiple_registrations_oldsort %>%
-#   mutate(list_type = case_when(
-#     CAN_LISTING_DT < lag(waitlist_end_date) ~ "concurrent",
-#     waitlist_end_date > lead(CAN_LISTING_DT) ~ "concurrent",
-#     TRUE ~ "sequential")) %>%
-#   mutate(REC_TX_DT = as.Date(REC_TX_DT)) %>%
-#   mutate(num_tx = length(unique(na.omit(REC_TX_DT)))) %>%
-#   fill(REC_TX_DT, .direction='downup')
-########################################################################
-
-
-
+```{r, warning=F, comment=NA}
 multiple_registrations <- multiple_registrations %>%
   mutate(list_type = case_when(
     CAN_LISTING_DT < lag(waitlist_end_date) ~ "concurrent",
@@ -131,8 +118,7 @@ for(i in 2:nrow(multiple_registrations)) {
 }
 
 ## Previous step only changed the counter at the first instance where transplant date changed
-## So now we fill 'down' this new counter value
-## If the last row had a different counter value but person ID stayed the same, change this row's counter to the last row's
+## Fill 'down' this new counter value: If the last row had a different counter value but person ID stayed the same, change counter
 for(i in 2:nrow(multiple_registrations)) {
   if(multiple_registrations$PERS_ID[i-1] == multiple_registrations$PERS_ID[i] &
      multiple_registrations$transplant_num[i-1] != multiple_registrations$transplant_num[i] &
@@ -158,8 +144,9 @@ sequential_lists <- multiple_registrations %>%
            TRUE ~ "censored"
          ))
 
-
+## How many possible transplants do we need to account for
 max_retransplants <- max(multiple_registrations$transplant_num)
+
 
 ## Minimum list date for each concurrent transplant
 multiple_registrations <- multiple_registrations %>%
@@ -173,41 +160,41 @@ for(i in 1:max_retransplants) {
   collapsed_concurrent_registrations <- rbind(collapsed_concurrent_registrations, 
         
   multiple_registrations %>%
-  filter(list_type == "concurrent" & transplant_num == i) %>% ## Do it seperately for each transplant counter number
-  mutate(DON_TY = ifelse(DON_TY == "", NA, DON_TY),
-         last_wait_date = max(waitlist_end_date, na.rm = TRUE))%>%
-  fill(REC_TX_DT, .direction = "up") %>%
-  fill(DON_TY, .direction = "up") %>%
-  fill(DONOR_ID, .direction = "up") %>%
-  fill(CAN_REM_CD, .direction = "up") %>%
-  #filter(row_number() ==1) %>%
-  mutate(wait_time = case_when(
-    is.na(REC_TX_DT) == FALSE & transplant_num != '0' ~ REC_TX_DT- min_list_date, ### Added, ignore sequential rows
-    TRUE ~ last_wait_date - min_list_date),
-    outcome = case_when(
-           DON_TY == "C" ~ "DDKT",
-           DON_TY == "L" ~ "LDKT",
-           is.na(CAN_REM_CD) == FALSE ~ "removed/died",
-           TRUE ~ "censored")
+    filter(list_type == "concurrent" & transplant_num == i) %>% ## Do it seperately for each transplant counter number
+    mutate(DON_TY = ifelse(DON_TY == "", NA, DON_TY),
+           last_wait_date = max(waitlist_end_date, na.rm = TRUE)) %>%
+    fill(REC_TX_DT, .direction = "up") %>%
+    fill(DON_TY, .direction = "up") %>%
+    fill(DONOR_ID, .direction = "up") %>%
+    fill(CAN_REM_CD, .direction = "up") %>%
+    mutate(wait_time = case_when(
+      is.na(REC_TX_DT) == FALSE & transplant_num != '0' ~ REC_TX_DT- min_list_date, ### Ignore sequential rows
+      TRUE ~ last_wait_date - min_list_date),
+      outcome = case_when(
+        DON_TY == "C" ~ "DDKT",
+        DON_TY == "L" ~ "LDKT",
+        is.na(CAN_REM_CD) == FALSE ~ "removed/died",
+        TRUE ~ "censored")
     ) %>%
-  select(-c(waitlist_end_date, CAN_LISTING_DT, CAN_REM_DT)) %>%
-  filter(row_number() ==1) %>%
-  mutate(last_wait_date = case_when(
-    REC_TX_DT < last_wait_date ~ REC_TX_DT,
-    TRUE ~last_wait_date))) 
+    select(-c(waitlist_end_date, CAN_LISTING_DT, CAN_REM_DT)) %>%
+    filter(row_number() ==1) %>%
+    
+    mutate(last_wait_date = case_when(
+      REC_TX_DT < last_wait_date ~ REC_TX_DT,
+      TRUE ~last_wait_date))) 
   
 }
 
 ```
 
 ## Code check for typical case
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa %>%
   filter(PERS_ID == 2235145) %>%
   select(PERS_ID, CAN_LISTING_DT, REC_TX_DT, DON_TY, CAN_REM_CD, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT)
 ```
 
-```{r}
+```{r, warning=F, comment=NA}
 collapsed_concurrent_registrations %>%
   ungroup() %>%
   select(PERS_ID, min_list_date, REC_TX_DT, DON_TY, CAN_REM_CD, last_wait_date, wait_time, outcome) %>%
@@ -215,9 +202,9 @@ collapsed_concurrent_registrations %>%
 ```
 
 
-## Resolved edge case - fixed
-- Candidate with multiple rounds of concurrent listings gets collapsed into a single observation `PERS_ID == 2255750`
-```{r}
+## Edge case with multiple rounds of concurrent listings
+- This gets collapsed into a single observation
+```{r, warning=F, comment=NA}
 multiple_registrations %>% 
   group_by(PERS_ID) %>%
   mutate(list_num = row_number(),
@@ -227,7 +214,7 @@ multiple_registrations %>%
 ```
 
 ### Second concurrent listing is included with correct data
-```{r}
+```{r, warning=F, comment=NA}
 collapsed_concurrent_registrations %>%
   select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
   filter(PERS_ID == 2255750)
@@ -237,7 +224,7 @@ collapsed_concurrent_registrations %>%
 
 ## Check a second edge case example to confirm 
 Candidate where the second waitlist observation ended after the third waitlist observation (before sorting), and the listing date requires a min listing date
-```{r}
+```{r, warning=F, comment=NA}
 multiple_registrations %>%
   group_by(PERS_ID) %>%
   arrange(PERS_ID, CAN_LISTING_DT) %>% 
@@ -247,15 +234,22 @@ multiple_registrations %>%
   filter(PERS_ID == 2232160)
 ```
 
-
-```{r}
+```{r, warning=F, comment=NA}
 collapsed_concurrent_registrations %>%
   select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
   filter(PERS_ID == 2232160)
 ```
 
+```{r, warning=F, comment=NA}
+sequential_lists %>%
+  select(PERS_ID, list_type, CAN_LISTING_DT, waitlist_end_date, outcome, wait_time, REC_TX_DT, DONOR_ID, DON_TY) %>%
+  filter(PERS_ID == 22321608)
+```
+
+
+
 # Look for other inconsistent cases
-```{r}
+```{r, warning=F, comment=NA}
 sample_check <-df_cand_kipa %>%
   select(PERS_ID, CAN_LISTING_CTR_ID, CAN_LISTING_DT, CAN_REM_DT, REC_TX_DT, DON_TY, CAN_REM_CD, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) %>%
     group_by(PERS_ID) %>%
@@ -272,20 +266,9 @@ sample_check %>%
 ```
 
 
-## Old dataset with earlier sort- list num 1 and 2 should be concurrent, while 6 should be sequential
-```{r}
-# multiple_registrations_oldsort %>%
-#   group_by(PERS_ID) %>%
-#   arrange(PERS_ID, CAN_LISTING_DT) %>% 
-#   mutate(list_num = row_number(),
-#          num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
-#   select(PERS_ID, list_num, list_type, CAN_LISTING_DT, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
-#   filter(PERS_ID==5117188)
-```
 
-
-## New dataset
-```{r}
+## Dataset check on case where transplant can affect dates
+```{r, warning=F, comment=NA}
 multiple_registrations %>%
   group_by(PERS_ID) %>%
   arrange(PERS_ID, CAN_LISTING_DT) %>% 
@@ -296,22 +279,21 @@ multiple_registrations %>%
 ```
 
 ### Correct since latest waitlist end date is 1/14/2019, and transplanted 1/13/2019
-```{r}
+```{r, warning=F, comment=NA}
 sample_collapsed_concurrent_PERS_ID %>%
-  filter(PERS_ID==5117188)
+  filter(PERS_ID == 5117188)
 ```
 
-### Check sequential to confirm
-```{r}
+```{r, warning=F, comment=NA}
 sequential_lists %>%
   select(PERS_ID, list_type, CAN_LISTING_DT, waitlist_end_date, outcome, wait_time, REC_TX_DT, DONOR_ID, DON_TY) %>%
-  filter(PERS_ID==5117188)
+  filter(PERS_ID == 5117188)
 ```
 
 
 
-## PX_ID = 2207056 to confirm no issues with 2207056
-```{r}
+## Another case check
+```{r, warning=F, comment=NA}
 multiple_registrations %>%
   group_by(PERS_ID) %>%
   arrange(PERS_ID, CAN_LISTING_DT) %>% 
@@ -321,7 +303,7 @@ multiple_registrations %>%
   filter(PERS_ID==2207056)
 ```
 
-```{r}
+```{r, warning=F, comment=NA}
 collapsed_concurrent_registrations %>%
   select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
   filter(PERS_ID == 2207056)
@@ -330,7 +312,7 @@ collapsed_concurrent_registrations %>%
 
 
 # Recombine into analytic dataset
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa <- bind_rows(single_registrations %>% ungroup(), 
                           sequential_lists %>% ungroup(), 
                           collapsed_concurrent_registrations %>% ungroup())
@@ -343,8 +325,8 @@ rm(collapsed_concurrent_registrations,
    sample_check, sample_collapsed_concurrent_PERS_ID)
 ```
 
-# Number of living donor transplants 
-```{r remove_living_donors_if_requested}
+# Number of living donor transplants (if necessary)
+```{r, warning=F, comment=NA}
 num_living_donor_recips <- df_cand_kipa %>% filter(DON_TY == "L") %>% pull(PX_ID) %>% unique() %>% length()
 
 if (living_donor_recips == FALSE) {
@@ -357,7 +339,7 @@ if (living_donor_recips == FALSE) {
 
 # Add EPTS variables
 ## Dialysis time
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>% 
   mutate(
     dialysis_time_at_list = case_when(
@@ -381,13 +363,13 @@ df_cand_kipa$preemptive_transplant <- ifelse(df_cand_kipa$dialysis_time_at_trans
 
 
 ## Dialysis time at listing (in years) check
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa %>%
   select(min_list_date, CAN_DIAL_DT, dialysis_time_at_list, preemptive_listing, dialysis)
 ```
 
-## Dialysis time at transplant check
-```{r}
+## Dialysis time at transplant (in years) check
+```{r, warning=F, comment=NA}
 df_cand_kipa %>%
   select(CAN_DIAL_DT, REC_TX_DT, dialysis_time_at_transplant, preemptive_transplant, living_donor, DON_TY) %>%
   filter(is.na(REC_TX_DT) == FALSE)
@@ -395,7 +377,7 @@ df_cand_kipa %>%
 
 
 ## DM categories
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>%
   mutate(
     diabetes_cat = case_when(
@@ -405,31 +387,29 @@ df_cand_kipa <- df_cand_kipa %>%
 
 
 
-# Calculate Raw EPTS at listing
-```{r}
+# Calculate raw EPTS at listing
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>% 
   mutate(raw_epts = 
            0.047*pmax(CAN_AGE_AT_LISTING - 25, 0) - 
            0.015*(diabetes_cat==1)*pmax(CAN_AGE_AT_LISTING - 25, 0) +
            0.398*CAN_PREV_TX - 0.237*(diabetes_cat==1)*CAN_PREV_TX +
            0.315*log(dialysis_time_at_list + 1) - 0.099*(diabetes_cat==1)*log(dialysis_time_at_list + 1) +
-           0.130*(dialysis_time_at_list == 0) - 0.348*(dialysis_time_at_list == 0) +  
+           0.130*(dialysis_time_at_list == 0) - 0.348*(diabetes_cat==1)*(dialysis_time_at_list == 0) +  
            1.262*(diabetes_cat==1))
+
+
+## NA EPTS values check
+# df_cand_kipa %>%
+#   filter(is.na(raw_epts)) %>%
+#   select(PERS_ID, CAN_AGE_AT_LISTING, diabetes_cat, CAN_PREV_TX, 
+#          dialysis_time_at_list, CAN_DIAL_DT, CAN_LISTING_DT, PX_ID, min_list_date)
 ```
 
 
-# NA EPTS values
-```{r}
-df_cand_kipa %>%
-  filter(is.na(raw_epts)) %>%
-  select(PERS_ID, CAN_AGE_AT_LISTING, diabetes_cat, CAN_PREV_TX, 
-         dialysis_time_at_list, CAN_DIAL_DT, CAN_LISTING_DT, PX_ID, min_list_date)
-```
 
-
-
-# EPTS mapping to percentiles
-```{r}
+# EPTS mapping to percentiles; see https://optn.transplant.hrsa.gov/media/g3xfajp4/epts_mapping_table.pdf
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>%
   mutate(percentile_epts = case_when(
            raw_epts <= 0.01842385502984 ~ 0,
@@ -566,13 +546,9 @@ df_cand_kipa$top_percentile_epts = factor(df_cand_kipa$top_percentile_epts, leve
 ```
 
 
-```{r}
-df_cand_kipa %>%
-  select(CAN_AGE_AT_LISTING, CAN_PREV_TX, dialysis_time_at_list, preemptive_listing, diabetes_cat, raw_epts, percentile_epts, top_percentile_epts)
-```
 
 ## Age, diabetes, and preemptive vs. EPTS percentile check
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa %>%
   ggplot(aes(x = CAN_AGE_AT_LISTING, y = percentile_epts, color = factor(preemptive_listing), shape = factor(diabetes_cat)))+
   geom_point()
@@ -580,17 +556,40 @@ df_cand_kipa %>%
 
 
 ## Examine cases where EPTS is 100
-## The lower cutoff for 100% EPTS is roughly 3.248
-```{r}
+Note: The lower cutoff for 100% EPTS is roughly 3.248
+```{r, warning=F, comment=NA}
 df_cand_kipa %>%
   filter(percentile_epts == 100) %>%
-  select(PX_ID, raw_epts, CAN_AGE_AT_LISTING, CAN_RACE, diabetes_cat, CAN_AGE_AT_LISTING, dialysis_time_at_list, CAN_PREV_TX)
+  select(PX_ID, raw_epts, CAN_AGE_AT_LISTING, diabetes_cat, dialysis_time_at_list, CAN_PREV_TX)
+```
+
+
+## Check with official calculator online to confirm (https://optn.transplant.hrsa.gov/data/allocation-calculators/epts-calculator)
+Calculated EPTS using date at time of writing (May 2023). 
+Date of birth uses age (years). For years since dialysis started, online calculator only allows 4 decimal places.
+Pick 'Does Not Have Diabetes' if diabetes_cat = 0. Otherwise pick 'Type I Diabetes' for diabetes status if diabetes_cat = 1.
+```{r, warning=F, comment=NA}
+set.seed(200)
+sample_patients <- sample(df_cand_kipa$PX_ID, size=5, replace=F)
+
+df_cand_kipa %>%
+  filter(PX_ID %in% sample_patients) %>%
+  select(PX_ID, raw_epts, percentile_epts, CAN_AGE_AT_LISTING, diabetes_cat, dialysis_time_at_list, CAN_PREV_TX)
+```
+
+
+### Check cases when age < 25, years on dialysis > 0, diabetes=1, prior transplant=1
+```{r, warning=F, comment=NA}
+df_cand_kipa %>%
+  filter(CAN_AGE_AT_LISTING < 25 & dialysis_time_at_list > 0 & diabetes_cat==1 & CAN_PREV_TX==1) %>%
+  select(PX_ID, raw_epts, percentile_epts, CAN_AGE_AT_LISTING, diabetes_cat, dialysis_time_at_list, CAN_PREV_TX) %>%
+  head(2)
 ```
 
 
 
 # Demographic variables
-```{r}
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>%
   mutate(race = case_when(
     CAN_RACE == '8' ~ 'White',
@@ -637,8 +636,8 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'American_India
 
 
 # KDPI scores
-```{r}
-df_kdpi <- read.csv('./fulldata.csv')
+```{r, warning=F, comment=NA}
+df_kdpi <- read.csv('./fulldata_for_epts.csv')
 df_kdpi <- df_kdpi[ ,c('DONOR_ID', 'kdpi')]
 df_kdpi <- df_kdpi[!duplicated(df_kdpi), ]
 
@@ -649,53 +648,32 @@ df_cand_kipa <- merge(df_cand_kipa, df_kdpi, by = 'DONOR_ID', all.x = T, all.y =
 ```
 
 
-# START HERE- missing KDPI for values for many DDKT transplants, need to check source file
-```{r}
-summary(df_cand_kipa %>% filter(DON_TY == "C") %>% pull(kdpi))
-```
-
-
-```{r}
-df_cand_kipa_all %>%
-  filter(PX_ID == 1020156) %>%
-  select(PX_ID, CAN_LISTING_DT, REC_TX_DT, DON_TY, DONOR_ID)
-```
-
-```{r}
-df_cand_kipa %>%
-  filter(PX_ID == 1020156) %>%
-  select(PX_ID, CAN_LISTING_DT, REC_TX_DT, DON_TY, kdpi)
-
-unique_candidates
-```
-
-
 ## Label top 20% KDPI category and check outcomes
-```{r}
-# df_cand_kipa <- df_cand_kipa %>%
-#   left_join(df_kdpi) %>%
-#   mutate(outcome = case_when(
-#     kdpi <= 20 ~ "top 20% KDPI DDKT",
-#     is.na(kdpi) == FALSE ~ ">20% KDPI DDKT",
-#     TRUE ~ outcome
-#   ))
-# 
-# df_cand_kipa %>% 
-#   select(PERS_ID, outcome, kdpi, DONOR_ID) %>%
-#   group_by(outcome) %>%
-#   summarise(min_kdpi = min(kdpi),
-#             max_kdpi = max(kdpi),
-#             num_outcomes = n())
+```{r, warning=F, comment=NA}
+df_cand_kipa <- df_cand_kipa %>%
+  left_join(df_kdpi) %>%
+  mutate(outcome = case_when(
+    kdpi <= 20 ~ "top 20% KDPI DDKT",
+    is.na(kdpi) == FALSE ~ ">20% KDPI DDKT",
+    TRUE ~ outcome
+  ))
+
+df_cand_kipa %>%
+  select(PERS_ID, outcome, kdpi, DONOR_ID) %>%
+  group_by(outcome) %>%
+  summarise(min_kdpi = min(kdpi),
+            max_kdpi = max(kdpi),
+            num_outcomes = n())
 ```
 
 ## Select final variables
 ```{r}
-##Add after KDPI fixed
+
 ```
 
 
 # Exclude listings missing key variables
-```{r exclusions}
+```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>%
   drop_na(diabetes)
 
@@ -720,7 +698,7 @@ n_no_race <- unique_listings - (n_no_dm + n_no_age + n_no_prev_tx + (df_cand_kip
 ```
 
 # Write file out
-```{r write_out}
+```{r, warning=F, comment=NA}
 if (living_donor_recips == TRUE) {
   f_name <- "candidates_w_ldkt_recips.Rdata"
 } else {
@@ -729,6 +707,3 @@ if (living_donor_recips == TRUE) {
 
 save(df_cand_kipa, file = f_name)
 ```
-
-
-
