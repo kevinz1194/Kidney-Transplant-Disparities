@@ -4,8 +4,8 @@ output: html_document
 authors: Jessica Lu, Kevin Zhang, Nour Asfour, and William Parker
 ---
 
-```{r setup, include=FALSE}
-rm(list=ls()); gc()
+```{r setup, include=F}
+rm(list=ls()); invisible(gc())
 knitr::opts_chunk$set(echo = TRUE)
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
