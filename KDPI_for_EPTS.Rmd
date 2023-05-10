@@ -165,10 +165,10 @@ donordata <- donordata %>% arrange(kdpi)
 
 
 
-## Check with official calculator online to confirm; weight is in kg, height in cm
+## Check with official calculator online to confirm
 Note that weight_capped is in kg and height_capped is in cm. 
 Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death if cod_cva is 0 and 'CEREBROVASCULAR/STROKE' of cod_cva is 1, pick 'YES, 0-5 YEARS' for history of hypertension and history of diabetes if they are equal to 1; otherwise pick 'NO'. 
-'kdpi_med' is equivalent to 'KDRI' on the online calculator. 
+'kdpi_med' is equivalent to KDRI (not KDPI) on the online calculator. 
 ```{r, warning=F, comment=NA}
 sample_donors <- sample(donordata$DONOR_ID, size=5, replace=F)
 
