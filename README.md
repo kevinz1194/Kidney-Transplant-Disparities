@@ -16,7 +16,7 @@ Updated 2/16/23: Different dialysis time variables are created. Additional gende
 
 Updated 3/8/23: Code is overhauled to add alternative dataset with patients waitlisted in 2015 removed, and to work with the other files.
 
-Updated 5/12/23: Renamed to candidate_data_prep and converted to a notebook.
+Updated 5/12/23: Renamed to candidate_data_prep and converted to a notebook. Includes living donors.
 
 
 ### 3. candidates_livingdonor.R 
