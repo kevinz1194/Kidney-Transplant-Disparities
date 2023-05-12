@@ -12,7 +12,7 @@ Updated 5/10/23: Added.
 ### 2. candidate_data_prep.Rmd
 Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
 
-EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/wn3buk04/epts_mapping_table_2020.pdf.
+EPTS Percentiles are based on the 2020 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/g3xfajp4/epts_mapping_table.pdf.
 
 Updated 2/16/23: Different dialysis time variables are created. Additional gender variable is added.
 
