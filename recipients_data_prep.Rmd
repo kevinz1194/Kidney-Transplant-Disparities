@@ -1,0 +1,395 @@
+---
+title: "Recipient File Prep for EPTS Inequity"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+authors: Kevin Zhang and Nour Asfour
+---
+
+```{r setup, include=FALSE}
+rm(list=ls()); invisible(gc())
+if (!require('pacman')) {install.packages('pacman')}
+library(pacman)
+pacman::p_load(tidyverse, Hmisc, lubridate, haven, expss)
+```
+
+
+---------------------------------------
+
+
+# Read in TX_KI dataset and select relevant variables
+Updated criteria: patients transplanted between 2015 and 2020
+```{r, warning=F, comment=NA}
+df_tx_ki <- haven::read_sas('./tx_ki.sas7bdat')
+df_tx_ki <- df_tx_ki %>%
+  filter(as.Date(REC_TX_DT) >= '2015-01-01' & as.Date(REC_TX_DT) <= '2020-12-31') %>%
+  filter(ORG_TY== 'KI') %>%
+  filter(CAN_AGE_AT_LISTING >= 18) %>%
+  
+  select(PX_ID, PERS_ID, CAN_RACE, CAN_GENDER, CAN_LISTING_DT,
+         CAN_PREV_TX, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, CAN_DIAB_TY,
+         TFL_DEATH_DT, TFL_LAFUDATE, REC_PRETX_DIAL, REC_DIAL_DT, REC_AGE_AT_TX, REC_TX_DT,
+         TFL_GRAFT_DT, DON_TY)
+
+
+df_tx_ki <- expss::drop_all_labels(df_tx_ki) 
+```
+
+
+# Create demographic variables
+```{r, warning=F, comment=NA}
+df_tx_ki <- df_tx_ki %>%
+  mutate(
+    living_donor = case_when(
+      DON_TY == 'L' ~ 1,
+      TRUE ~ 0),
+    
+    previous_TX_KI = case_when(
+      CAN_PREV_TX == '1' ~ 1,
+      TRUE ~ 0),
+    
+    dialysis_dt = as.Date(REC_DIAL_DT),
+    
+    preemptive_listing_KI = case_when(
+      REC_PRETX_DIAL == 'N' ~ '1',
+      TRUE ~ '0'),
+    
+    sex_tx = case_when(
+      CAN_GENDER == 'M' ~ 'Male',
+      CAN_GENDER == 'F' ~ 'Female'),
+    
+    age_tx = as.numeric(REC_AGE_AT_TX),
+    
+    death_date_tx = as.Date(TFL_DEATH_DT),
+    
+    transplant_date_tx = as.Date(REC_TX_DT),
+    
+    graft_failure_dt = as.Date(TFL_GRAFT_DT),
+    
+    followup_dt = as.Date(TFL_LAFUDATE),
+    
+    listing_dt_tx = as.Date(CAN_LISTING_DT),
+    
+    race_tx = case_when(
+      CAN_RACE == '8' ~ 'White',
+      CAN_RACE == '16' ~ 'Black_AA',
+      CAN_RACE == '32' ~ 'American_Indian',
+      CAN_RACE == '64' ~ 'Asian',
+      CAN_RACE == '128' ~ 'Pacific_Islander',
+      CAN_RACE == '256' ~ 'Arab_Middle_East',
+      CAN_RACE == '512' ~ 'Indian_SubContinent',
+      CAN_RACE == '1024' ~ 'Unknown',
+      CAN_RACE == '2000' ~ 'Hispanic',
+      TRUE ~ 'Other'),
+    
+    diabetes_cat_tx = case_when(
+      CAN_DIAB_TY == '2' | CAN_DIAB_TY == '3' | CAN_DIAB_TY == '4' | CAN_DIAB_TY == '5' ~ '1',
+      TRUE ~ '0')) %>%
+  
+  mutate(age_tx = as.numeric(age_tx)) %>%
+  
+  mutate(age_group = case_when(
+    age_tx <= 24 ~ '18-24',
+    age_tx > 24 & age_tx <= 29 ~ '25-29',
+    age_tx > 29 & age_tx <= 39 ~ '30-39',
+    age_tx > 39 & age_tx <= 49 ~ '40-49',
+    age_tx > 49 & age_tx <= 59 ~ '50-59',
+    age_tx > 59 & age_tx <= 69 ~ '60-69',
+    TRUE ~ '>70')) %>%
+  
+  select(-c(CAN_RACE, CAN_GENDER, CAN_LISTING_DT, CAN_DIAB_TY, CAN_PREV_TX, REC_PRETX_DIAL, 
+            REC_AGE_AT_TX, REC_DIAL_DT, REC_TX_DT,
+            PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, TFL_DEATH_DT, TFL_LAFUDATE, TFL_GRAFT_DT, DON_TY))
+
+
+
+
+df_tx_ki$race_tx <- factor(df_tx_ki$race_tx, levels=c('White', 'American_Indian', 'Arab_Middle_East',
+                                                      'Asian', 'Black_AA', 'Hispanic', 'Indian_SubContinent',
+                                                      'Other', 'Pacific_Islander', 'Unknown'))
+
+```
+
+
+---------------------------------------
+
+
+# Create time variables
+```{r, warning=F, comment=NA}
+df_recipients <- df_tx_ki
+rm(df_tx_ki)
+
+
+### Transplant time
+df_recipients$transplant_time <- as.numeric(difftime(df_recipients$transplant_date_tx, 
+                                                     df_recipients$listing_dt_tx, units = 'weeks')) / 52.25
+
+
+
+### Dialysis years prior to transplant
+df_recipients <- df_recipients%>% 
+  mutate(
+    dialysis_time_at_transplant = case_when(
+      is.na(dialysis_dt) | is.na(transplant_date_tx) ~ 0,
+      TRUE ~ as.numeric(difftime(dialysis_dt, transplant_date_tx, units = 'weeks')) / 52.25))
+df_recipients$dialysis_time_at_transplant <- -round(df_recipients$dialysis_time_at_transplant, digits = 1)
+
+
+
+### Time to death with functioning graft in days
+df_recipients <- df_recipients %>% 
+  mutate(time_to_death_function = 
+           case_when(!is.na(death_date_tx) == '1' ~ 
+                       as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days')))
+
+
+### Time to graft failure in days
+df_recipients$time_graft_failure <- 
+  as.numeric(df_recipients$graft_failure_dt - df_recipients$transplant_date_tx, units = 'days')
+
+
+
+### Graft survival time in days
+df_recipients <- df_recipients %>% 
+  mutate(time_graft_survival = 
+           case_when(
+             !is.na(death_date_tx) | !is.na(graft_failure_dt) ~
+               as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - transplant_date_tx, 
+                          units = 'days')))
+
+
+
+### Time to followup in days
+df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$transplant_date_tx, units = 'days')
+```
+
+
+---------------------------------------
+
+# Add EPTS variables 
+## Calculate raw EPTS at transplant
+```{r, warning=F, comment=NA}
+df_recipients <- df_recipients %>% 
+  mutate(raw_epts = 
+           0.047*pmax(age_tx - 25, 0) - 
+           0.015*(diabetes_cat_tx==1)*pmax(age_tx - 25, 0) +
+           0.398*previous_TX_KI - 0.237*(diabetes_cat_tx==1)*previous_TX_KI +
+           0.315*log(dialysis_time_at_transplant + 1) - 0.099*(diabetes_cat_tx==1)*log(dialysis_time_at_transplant + 1) +
+           0.130*(dialysis_time_at_transplant == 0) - 0.348*(diabetes_cat_tx==1)*(dialysis_time_at_transplant == 0) +  
+           1.262*(diabetes_cat_tx==1))
+
+```
+
+
+
+## EPTS mapping to percentiles; see https://optn.transplant.hrsa.gov/media/g3xfajp4/epts_mapping_table.pdf
+```{r, warning=F, comment=NA}
+df_recipients <- df_recipients %>%
+  mutate(percentile_epts = case_when(
+           raw_epts <= 0.01842385502984 ~ 0,
+           raw_epts <= 0.23587063655031 ~ 1,
+           raw_epts <= 0.41885215605749 ~ 2,
+           raw_epts <= 0.52800000000000 ~ 3,
+           raw_epts <= 0.62852561015766 ~ 4,
+           
+           raw_epts <= 0.71352703627652 ~ 5,
+           raw_epts <= 0.79220296573099 ~ 6,
+           raw_epts <= 0.86714433496842 ~ 7,
+           raw_epts <= 0.93047980835044 ~ 8,
+           raw_epts <= 0.99391854893908 ~ 9,
+           
+           raw_epts <= 1.05598976270380 ~ 10,
+           raw_epts <= 1.11434794060852 ~ 11,
+           raw_epts <= 1.17045574165807 ~ 12,
+           raw_epts <= 1.22030049020253 ~ 13,
+           raw_epts <= 1.27212500074301 ~ 14,
+           
+           raw_epts <= 1.31913766912690 ~ 15,
+           raw_epts <= 1.36438535249829 ~ 16,
+           raw_epts <= 1.41168240930869 ~ 17,
+           raw_epts <= 1.45433196440794 ~ 18,
+           raw_epts <= 1.49473716632444 ~ 19,
+           
+           raw_epts <= 1.53514236824093 ~ 20,
+           raw_epts <= 1.57300507228037 ~ 21,
+           raw_epts <= 1.60810335386721 ~ 22,
+           raw_epts <= 1.64297604380561 ~ 23,
+           raw_epts <= 1.67354110859117 ~ 24,
+           
+           raw_epts <= 1.70255373032170 ~ 25,
+           raw_epts <= 1.73150650239562 ~ 26,
+           raw_epts <= 1.75869376757638 ~ 27,
+           raw_epts <= 1.78477960301164 ~ 28,
+           raw_epts <= 1.81180219028063 ~ 29,
+           
+           raw_epts <= 1.83683495289066 ~ 30,
+           raw_epts <= 1.86060232717317 ~ 31,
+           raw_epts <= 1.88375164234518 ~ 32,
+           raw_epts <= 1.90727234572108 ~ 33,
+           raw_epts <= 1.92941067761807 ~ 34,
+           
+           raw_epts <= 1.95149964313427 ~ 35,
+           raw_epts <= 1.97370841889117 ~ 36,
+           raw_epts <= 1.99414162335253 ~ 37,
+           raw_epts <= 2.01486542476192 ~ 38,
+           raw_epts <= 2.03323308735222 ~ 39,
+           
+           raw_epts <= 2.05397604380561 ~ 40,
+           raw_epts <= 2.07327619854998 ~ 41,
+           raw_epts <= 2.09202182261888 ~ 42,
+           raw_epts <= 2.11055715263518 ~ 43,
+           raw_epts <= 2.12710952613370 ~ 44,
+           
+           raw_epts <= 2.14469472963723 ~ 45,
+           raw_epts <= 2.16206639288159 ~ 46,
+           raw_epts <= 2.17895804742641 ~ 47,
+           raw_epts <= 2.19533620671360 ~ 48,
+           raw_epts <= 2.21202975619422 ~ 49,
+           
+           raw_epts <= 2.22830663928816 ~ 50,
+           raw_epts <= 2.24486516084873 ~ 51,
+           raw_epts <= 2.25934770704997 ~ 52,
+           raw_epts <= 2.27457912196537 ~ 53,
+           raw_epts <= 2.29007370896616 ~ 54,
+           
+           raw_epts <= 2.30555527524319 ~ 55,
+           raw_epts <= 2.32162833675565 ~ 56,
+           raw_epts <= 2.33676297950084 ~ 57,
+           raw_epts <= 2.35264238040105 ~ 58,
+           raw_epts <= 2.36804654346338 ~ 59,
+           
+           raw_epts <= 2.38288012607080 ~ 60,
+           raw_epts <= 2.39744314980323 ~ 61,
+           raw_epts <= 2.41176454483231 ~ 62,
+           raw_epts <= 2.42661080994812 ~ 63,
+           raw_epts <= 2.44143904753026 ~ 64,
+           
+           raw_epts <= 2.45616599664439 ~ 65,
+           raw_epts <= 2.47046406570842 ~ 66,
+           raw_epts <= 2.48541673804140 ~ 67,
+           raw_epts <= 2.50082593655723 ~ 68,
+           raw_epts <= 2.51575906913073 ~ 69,
+           
+           raw_epts <= 2.53179041411307 ~ 70,
+           raw_epts <= 2.54847145496397 ~ 71,
+           raw_epts <= 2.56450211494358 ~ 72,
+           raw_epts <= 2.58056343072585 ~ 73,
+           raw_epts <= 2.59622536132146 ~ 74,
+           
+           raw_epts <= 2.61220575225961 ~ 75,
+           raw_epts <= 2.62980229727812 ~ 76,
+           raw_epts <= 2.64633742797854 ~ 77,
+           raw_epts <= 2.66270836678796 ~ 78,
+           raw_epts <= 2.68071428443369 ~ 79,
+           
+           raw_epts <= 2.69965721597721 ~ 80,
+           raw_epts <= 2.71924640657084 ~ 81,
+           raw_epts <= 2.73853621699103 ~ 82,
+           raw_epts <= 2.75778147760295 ~ 83,
+           raw_epts <= 2.77728756159785 ~ 84,
+           
+           raw_epts <= 2.79719224080293 ~ 85,
+           raw_epts <= 2.81884538728167 ~ 86,
+           raw_epts <= 2.83956718767238 ~ 87,
+           raw_epts <= 2.86117343797221 ~ 88,
+           raw_epts <= 2.88458357309819 ~ 89,
+           
+           raw_epts <= 2.90679669457193 ~ 90,
+           raw_epts <= 2.93187604974332 ~ 91,
+           raw_epts <= 2.95563732458239 ~ 92,
+           raw_epts <= 2.98192663471240 ~ 93,
+           raw_epts <= 3.01041956645050 ~ 94,
+           
+           raw_epts <= 3.04211557588171 ~ 95,
+           raw_epts <= 3.07653689699372 ~ 96,
+           raw_epts <= 3.11838513945413 ~ 97,
+           raw_epts <= 3.17159971150431 ~ 98,
+           raw_epts <= 3.24849418211424 ~ 99,
+           TRUE ~ 100)) 
+  
+## Extra line to remove missings
+df_recipients$percentile_epts[is.na(df_recipients$raw_epts)] <- NA
+
+df_recipients <- df_recipients %>%
+  mutate(top_percentile_epts = case_when(
+    percentile_epts <= 20 & !is.na(percentile_epts) ~ '1', 
+    TRUE ~ '0')) 
+
+
+df_recipients$top_percentile_epts = factor(df_recipients$top_percentile_epts, levels=c(0,1))
+```
+
+
+---------------------------------------
+
+
+# Age, diabetes, and preemptive vs. EPTS percentile check
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  ggplot(aes(x = age_tx, y = percentile_epts, color = factor(preemptive_listing_KI), shape = factor(diabetes_cat_tx)))+
+  geom_point()
+```
+
+
+# Examine cases where EPTS is 100
+Note: The lower cutoff for 100% EPTS is roughly 3.248
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(percentile_epts == 100) %>%
+  select(PX_ID, raw_epts, age_tx, diabetes_cat_tx, dialysis_time_at_transplant, previous_TX_KI)
+```
+
+
+
+## Check with official calculator online to confirm (https://optn.transplant.hrsa.gov/data/allocation-calculators/epts-calculator)
+Calculated EPTS using date at time of writing (May 2023). 
+Date of birth uses age (years). For years since dialysis started, online calculator only allows 4 decimal places.
+Pick 'Does Not Have Diabetes' if diabetes_cat_tx = 0. Otherwise pick 'Type I Diabetes' for diabetes status if diabetes_cat_tx = 1. 
+```{r, warning=F, comment=NA}
+set.seed(200)
+sample_patients <- sample(df_recipients$PX_ID, size=5, replace=F)
+
+df_recipients %>%
+  filter(PX_ID %in% sample_patients) %>%
+  select(PX_ID, raw_epts, percentile_epts, age_tx, diabetes_cat_tx, dialysis_time_at_transplant, previous_TX_KI)
+```
+
+
+### Check cases when age < 25, years on dialysis > 0, diabetes=1, prior transplant=1
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(age_tx < 25 & dialysis_time_at_transplant > 0 & diabetes_cat_tx==1 & previous_TX_KI==1) %>%
+  select(PX_ID, raw_epts, percentile_epts, age_tx, diabetes_cat_tx, dialysis_time_at_transplant, previous_TX_KI) %>%
+  head(2)
+```
+
+
+---------------------------------------
+
+
+# New post-transplant variables
+```{r, warning=F, comment=NA}
+df_recipients <- df_recipients %>%
+  mutate(death_with_function = 
+           case_when(!is.na(death_date_tx) & is.na(graft_failure_dt) ~ 1,
+                     TRUE ~ 0),
+         
+         graft_failure =
+           case_when(!is.na(graft_failure_dt) ~ 1,
+                     TRUE ~ 0),
+         
+         graft_survival = 
+           case_when(
+             !is.na(graft_failure_dt) | !is.na(death_date_tx) ~ 1,
+             TRUE ~ 0))
+```
+
+
+---------------------------------------
+
+
+# Write file out
+```{r, warning=F, comment=NA}
+save(df_recipients, file = './recipients.RData')
+```
