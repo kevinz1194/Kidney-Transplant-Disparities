@@ -4,7 +4,9 @@ All files are written and tested using R 4.2.2. Files should be run in this orde
 
 
 ### 1. KDPI_for_EPTS.Rmd
-Sets up dataset to calculate KDPI score.
+Sets up dataset to calculate KDPI score, based on the April 2022 guide available at: https://optn.transplant.hrsa.gov/media/j34dm4mv/kdpi_guide.pdf.
+
+KDRI to KDPI is based on the March 2022 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/wnmnxxzu/kdpi_mapping_table.pdf.
 
 Updated 5/10/23: Added.
 
@@ -12,7 +14,8 @@ Updated 5/10/23: Added.
 ### 2. candidate_data_prep.Rmd
 Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
 
-EPTS Percentiles are based on the March 2022 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/g3xfajp4/epts_mapping_table.pdf.
+EPTS score is based on the April 2022 guide available at: https://optn.transplant.hrsa.gov/media/pn1pt2bc/epts_guide.pdf. 
+EPTS percentiles are based on the March 2022 Mapping Table, available at: https://optn.transplant.hrsa.gov/media/g3xfajp4/epts_mapping_table.pdf.
 
 Updated 2/16/23: Different dialysis time variables are created. Additional gender variable is added.
 
