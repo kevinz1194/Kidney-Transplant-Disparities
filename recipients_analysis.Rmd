@@ -95,7 +95,7 @@ fit_top20 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_
 p <- ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
                 conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
-                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                xlim = c(0,5), 
                 risk.table = T,        
                 risk.table.col = 'strata',
                 risk.table.fontsize = c(3.5),
@@ -116,8 +116,8 @@ p
 
 ### KM curve for death with functioning graft with top EPTS < 20 by race, no 2015 (Figure 3 equivalent)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
-df_recipients_top20_no2015 <- subset(df_recipients_top20,
-                                     year(as.Date(df_recipients_top20$listing_date_tx)) != 2015)
+df_recipients_top20$year <- lubridate::year(df_recipients_top20$listing_dt_tx)
+df_recipients_top20_no2015 <- subset(df_recipients_top20, df_recipients_top20$year != '2015')
 
 
 fit_top20_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
@@ -126,7 +126,7 @@ fit_top20_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25, deat
 p <- ggsurvplot(fit_top20_no2015, data = df_recipients_top20_no2015, size = 1.2, censor = F,
                 conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
-                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                xlim = c(0,5),
                 risk.table = T,        
                 risk.table.col = 'strata',
                 risk.table.fontsize = c(3.5),
@@ -161,7 +161,7 @@ fit_top20_kpdi <- survival::survfit(Surv(time_to_death_function / 365.25, death_
 p <- ggsurvplot(fit_top20_kpdi, data = df_recipients_top20_kpdi, size = 1.2, censor = F,
                 conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
-                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                xlim = c(0,5), 
                 risk.table = T,        
                 risk.table.col = 'strata',
                 risk.table.fontsize = c(3.5),
@@ -182,8 +182,8 @@ p
 
 ### KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
-df_recipients_top20_kpdi_no2015 <- subset(df_recipients_top20_kpdi,
-                                     year(as.Date(df_recipients_top20_kpdi$listing_date_tx)) != 2015)
+df_recipients_top20_kpdi$year <-  lubridate::year(df_recipients_top20_kpdi$listing_dt_tx)
+df_recipients_top20_kpdi_no2015 <- subset(df_recipients_top20_kpdi, df_recipients_top20_kpdi$year != '2015')
 
 
 fit_top20_kdpi_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
@@ -192,7 +192,7 @@ fit_top20_kdpi_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25,
 p <- ggsurvplot(fit_top20_kdpi_no2015, data = df_recipients_top20_kpdi_no2015, size = 1.2, censor = F,
                 conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
-                xlim = c(0,5), ylim = c(0.85, 1), pval.coord=c(0, 0.95), 
+                xlim = c(0,5), 
                 risk.table = T,        
                 risk.table.col = 'strata',
                 risk.table.fontsize = c(3.5),
@@ -236,8 +236,8 @@ ggcuminc(death_function_cuminc,
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
   ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS') +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7')) +
-  xlim(c(0,5)) + ylim(c(0, 0.15)) +
-  add_pvalue(location = 'annotation', x = 4.5, y = 0.10, size = 5) +
+  xlim(c(0,5)) + ylim(c(0,0.1)) + 
+  add_pvalue(location = 'annotation', x = 4.5, y = 0.08, size = 5) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         axis.title.x = element_text(size = 14, margin = margin(t=5)), 
@@ -261,8 +261,8 @@ ggcuminc(death_function_cuminc_adj,
          outcome = '1', size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
   ggtitle('Death with Function, Graft Failure Competing Risk in Deceased Donors, Top EPTS, Adj. Top KDPI') +
-  xlim(c(0,5)) + ylim(c(0, 0.2)) +
-  add_pvalue(location = 'annotation', x = 4.5, y = 0.15, size = 5) +
+  xlim(c(0,5)) + ylim(c(0,0.1)) + 
+  add_pvalue(location = 'annotation', x = 4.5, y = 0.08, size = 5) +
   scale_color_manual(
     values = c('#000000', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7'),
     labels = c('White, Non Top KDPI', 'Black_AA, Non Top KDPI', 'Hispanic, Non Top KDPI', 'Asian, Non Top KDPI',
