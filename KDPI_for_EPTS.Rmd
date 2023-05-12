@@ -4,8 +4,8 @@ output: html_document
 authors: Jessica Lu, Kevin Zhang, Nour Asfour, and William Parker
 ---
 
-```{r setup, include=F}
-rm(list=ls()); invisible(gc())
+```{r setup, include=FALSE}
+rm(list=ls()); gc()
 knitr::opts_chunk$set(echo = TRUE)
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
@@ -165,10 +165,8 @@ donordata <- donordata %>% arrange(kdpi)
 
 
 
-## Check with official calculator online to confirm (https://optn.transplant.hrsa.gov/data/allocation-calculators/kdpi-calculator)
-Note that weight_capped is in kg and height_capped is in cm. 
-Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death if cod_cva is 0 and 'CEREBROVASCULAR/STROKE' of cod_cva is 1, pick 'YES, 0-5 YEARS' for history of hypertension and history of diabetes if they are equal to 1; otherwise pick 'NO'. 
-'kdpi_med' is equivalent to KDRI (not KDPI) on the online calculator. 
+## Check with official calculator online to confirm
+Note that weight_capped is in kg and height_capped is in cm. Pick 'White' if not Black/AA, pick 'ANOXIA' for Cause of death if cod_cva is 0 and 'CEREBROVASCULAR/STROKE' of cod_cva is 1, pick 'YES, 0-5 YEARS' for history of hypertension and history of diabetes if they are equal to 1; otherwise pick 'NO'. 'kdpi_med' is equivalent to 'KDRI' on the online calculator. 
 ```{r, warning=F, comment=NA}
 sample_donors <- sample(donordata$DONOR_ID, size=5, replace=F)
 
@@ -229,7 +227,7 @@ recipdata <- recipdata  %>%
 recipdata <- recipdata %>%
   mutate(status = if_else(TFL_LASTATUS=='D' | TFL_LASTATUS =='R', 1, 0)) %>% #dead = 1, censored = 0
   mutate(survtime = as.numeric(difftime(endtime, REC_TX_DT, units = c('days')))) %>%
-  select(DONOR_ID, REC_TX_DT, REC_TX_PROCEDURE_TY, survtime, TFL_GRAFT_DT, TFL_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, endtime, TFL_LASTATUS, TFL_LAFUDATE, status) %>% arrange(DONOR_ID)
+  select(PX_ID, DONOR_ID, REC_TX_DT, REC_TX_PROCEDURE_TY, survtime, TFL_GRAFT_DT, TFL_DEATH_DT, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, endtime, TFL_LASTATUS, TFL_LAFUDATE, status) %>% arrange(DONOR_ID)
 ```
 
 
