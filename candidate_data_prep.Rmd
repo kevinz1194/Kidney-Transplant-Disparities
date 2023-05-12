@@ -34,6 +34,9 @@ num_adult_registrations
 ```
 
 
+---------------------------------------
+
+
 # Create waitlist time end date for each patient registration
 ```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa_all %>%
@@ -41,6 +44,8 @@ df_cand_kipa <- df_cand_kipa_all %>%
     is.na(REC_TX_DT) == FALSE ~ REC_TX_DT,
     is.na(CAN_REM_DT) == FALSE ~ CAN_REM_DT,
     is.na(CAN_LAST_INACT_STAT_DT) == FALSE & CAN_LAST_INACT_STAT_DT > CAN_LAST_ACT_STAT_DT ~ CAN_LAST_INACT_STAT_DT,
+    !is.na(CAN_LAST_ACT_STAT_DT) ~ CAN_LAST_ACT_STAT_DT,
+    is.na(CAN_LAST_ACT_STAT_DT) & !is.na(CAN_LAST_INACT_STAT_DT) ~ CAN_LAST_INACT_STAT_DT,
     TRUE ~ CAN_LAST_ACT_STAT_DT)
     )
 ```
@@ -69,6 +74,8 @@ single_registrations %>%
   count(outcome)
 ```
 
+
+---------------------------------------
 
 
 # Create a single record for candidates with multiple concurrent registrations
@@ -132,6 +139,18 @@ for(i in 2:nrow(multiple_registrations)) {
 multiple_registrations$transplant_num[multiple_registrations$list_type == 'sequential'] <- 0
 
 
+## Unusual cases when filling data leads to incorrect transplant date
+for(i in 1:(nrow(multiple_registrations)-1)) {
+  if(multiple_registrations$PERS_ID[i] == multiple_registrations$PERS_ID[i+1] &
+     multiple_registrations$list_type[i] == 'concurrent' & multiple_registrations$list_type[i+1] == 'concurrent' &
+     !is.na(multiple_registrations$REC_TX_DT[i]) & !is.na(multiple_registrations$REC_TX_DT[i+1]) &
+     multiple_registrations$REC_TX_DT[i] < multiple_registrations$REC_TX_DT[i+1] ) {
+    
+    multiple_registrations$REC_TX_DT[i] <- multiple_registrations$REC_TX_DT[i+1] 
+     }
+}
+
+
 
 sequential_lists <- multiple_registrations %>%
   filter(list_type == "sequential") %>%
@@ -168,7 +187,7 @@ for(i in 1:max_retransplants) {
     fill(DONOR_ID, .direction = "up") %>%
     fill(CAN_REM_CD, .direction = "up") %>%
     mutate(wait_time = case_when(
-      is.na(REC_TX_DT) == FALSE & transplant_num != '0' ~ REC_TX_DT- min_list_date, ### Ignore sequential rows
+      is.na(REC_TX_DT) == FALSE & transplant_num != '0' ~ REC_TX_DT- min_list_date, ### Ignore non-transplanted rows
       TRUE ~ last_wait_date - min_list_date),
       outcome = case_when(
         DON_TY == "C" ~ "DDKT",
@@ -184,8 +203,11 @@ for(i in 1:max_retransplants) {
       TRUE ~last_wait_date))) 
   
 }
-
 ```
+
+
+---------------------------------------
+
 
 ## Code check for typical case
 ```{r, warning=F, comment=NA}
@@ -210,7 +232,7 @@ multiple_registrations %>%
   mutate(list_num = row_number(),
          num_tx = n_distinct(REC_TX_DT, na.rm = TRUE)) %>%
   select(PERS_ID, list_num, list_type, CAN_LISTING_DT, waitlist_end_date, num_tx, REC_TX_DT, DONOR_ID, DON_TY) %>%
-  filter(PERS_ID == '2255750')
+  filter(PERS_ID == 2255750)
 ```
 
 ### Second concurrent listing is included with correct data
@@ -219,7 +241,6 @@ collapsed_concurrent_registrations %>%
   select(PERS_ID, min_list_date, last_wait_date, REC_TX_DT, wait_time, outcome, DONOR_ID) %>%
   filter(PERS_ID == 2255750)
 ```
-
 
 
 ## Check a second edge case example to confirm 
@@ -243,9 +264,8 @@ collapsed_concurrent_registrations %>%
 ```{r, warning=F, comment=NA}
 sequential_lists %>%
   select(PERS_ID, list_type, CAN_LISTING_DT, waitlist_end_date, outcome, wait_time, REC_TX_DT, DONOR_ID, DON_TY) %>%
-  filter(PERS_ID == 22321608)
+  filter(PERS_ID == 2232160)
 ```
-
 
 
 # Look for other inconsistent cases
@@ -266,8 +286,7 @@ sample_check %>%
 ```
 
 
-
-## Dataset check on case where transplant can affect dates
+## Check on case where transplant can affect dates
 ```{r, warning=F, comment=NA}
 multiple_registrations %>%
   group_by(PERS_ID) %>%
@@ -291,7 +310,6 @@ sequential_lists %>%
 ```
 
 
-
 ## Another case check
 ```{r, warning=F, comment=NA}
 multiple_registrations %>%
@@ -309,6 +327,8 @@ collapsed_concurrent_registrations %>%
   filter(PERS_ID == 2207056)
 ```
  
+
+---------------------------------------
 
 
 # Recombine into analytic dataset
@@ -335,6 +355,8 @@ if (living_donor_recips == FALSE) {
 }
 ```
 
+
+---------------------------------------
 
 
 # Add EPTS variables
@@ -385,6 +407,8 @@ df_cand_kipa <- df_cand_kipa %>%
       TRUE ~ 0))
 ```
 
+
+---------------------------------------
 
 
 # Calculate raw EPTS at listing
@@ -564,10 +588,13 @@ df_cand_kipa %>%
 ```
 
 
+---------------------------------------
+
+
 ## Check with official calculator online to confirm (https://optn.transplant.hrsa.gov/data/allocation-calculators/epts-calculator)
 Calculated EPTS using date at time of writing (May 2023). 
 Date of birth uses age (years). For years since dialysis started, online calculator only allows 4 decimal places.
-Pick 'Does Not Have Diabetes' if diabetes_cat = 0. Otherwise pick 'Type I Diabetes' for diabetes status if diabetes_cat = 1.
+Pick 'Does Not Have Diabetes' if diabetes_cat = 0. Otherwise pick 'Type I Diabetes' for diabetes status if diabetes_cat = 1. 
 ```{r, warning=F, comment=NA}
 set.seed(200)
 sample_patients <- sample(df_cand_kipa$PX_ID, size=5, replace=F)
@@ -586,6 +613,8 @@ df_cand_kipa %>%
   head(2)
 ```
 
+
+---------------------------------------
 
 
 # Demographic variables
@@ -635,6 +664,9 @@ df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'American_India
 ```
 
 
+---------------------------------------
+
+
 # KDPI scores
 ```{r, warning=F, comment=NA}
 df_kdpi <- read.csv('./fulldata_for_epts.csv')
@@ -646,7 +678,6 @@ df_cand_kipa %>%
 
 df_cand_kipa <- merge(df_cand_kipa, df_kdpi, by = 'DONOR_ID', all.x = T, all.y = F)
 ```
-
 
 ## Label top 20% KDPI category and check outcomes
 ```{r, warning=F, comment=NA}
@@ -666,10 +697,135 @@ df_cand_kipa %>%
             num_outcomes = n())
 ```
 
-## Select final variables
-```{r}
+
+---------------------------------------
+
+
+# Clean up some variables
+```{r, warning=F, comment=NA}
+### Initial variable selection
+df_cand_kipa <- df_cand_kipa %>%
+  select(PX_ID, PERS_ID, living_donor, raw_epts, percentile_epts, top_percentile_epts, kdpi, 
+         outcome, list_type, waitlist_end_date, wait_time, min_list_date, last_wait_date,
+         age, age_group, sex, race, diabetes, dialysis, dialysis_time_at_list,
+         preemptive_listing, preemptive_transplant, previous_TX,
+         CAN_LISTING_DT, CAN_REM_CD, CAN_REM_DT, REC_TX_DT, CAN_LAST_INACT_STAT_DT, CAN_LAST_ACT_STAT_DT, 
+         CAN_DEATH_DT, PERS_SSA_DEATH_DT, PERS_OPTN_DEATH_DT)
+
+
+### A death indicator variable
+df_cand_kipa <- df_cand_kipa %>% 
+  mutate(death = case_when(
+    CAN_REM_CD == '8' | !is.na(CAN_DEATH_DT) | !is.na(PERS_SSA_DEATH_DT) | !is.na(PERS_OPTN_DEATH_DT) ~ 1,
+    TRUE ~ 0))
+
+# If transplanted, transplanted takes priority
+df_cand_kipa$death[df_cand_kipa$outcome == '>20% KDPI DDKT' | df_cand_kipa$outcome == 'DDKT' |
+                   df_cand_kipa$outcome == 'LDKT' |  df_cand_kipa$outcome == 'top 20% KDPI DDKT'] <- 0
 
 ```
+
+
+### Check death variables
+```{r, warning=F, comment=NA}
+## Confirm that there are no transplant removal codes
+df_cand_kipa %>%
+  filter(death == '1') %>%
+  select(CAN_REM_CD) %>% 
+  group_by(CAN_REM_CD) %>%
+  summarise(count = n())
+```
+
+
+```{r, warning=F, comment=NA}
+## Check cases when outcome is removed/died but no death indicator
+possible_deaths <- df_cand_kipa %>%
+  filter(death == '0' & outcome == 'removed/died') %>%
+  select(PX_ID, min_list_date, waitlist_end_date, wait_time, 
+         CAN_REM_CD, CAN_REM_DT, PERS_SSA_DEATH_DT, PERS_OPTN_DEATH_DT,
+         CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT)
+
+# Whether removal code for death exists
+possible_deaths %>%
+  select(CAN_REM_CD) %>% group_by(CAN_REM_CD) %>%
+  summarise(count = n())
+```
+
+```{r, warning=F, comment=NA}
+# Whether a death date exists otherwise
+possible_deaths <- possible_deaths %>%
+  filter(!is.na(PERS_SSA_DEATH_DT) | !is.na(PERS_OPTN_DEATH_DT))
+
+nrow(possible_deaths)
+
+rm(possible_deaths)
+```
+
+
+---------------------------------------
+
+### Check wait time variable for missings
+```{r, warning=F, comment=NA}
+df_cand_kipa %>%
+  filter(is.na(wait_time)) %>%
+  select(PX_ID, PERS_ID, outcome, 
+         min_list_date, CAN_REM_CD, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
+```
+
+
+### Check wait time variable for 0 time (same day)
+```{r, warning=F, comment=NA}
+df_cand_kipa %>%
+  filter(wait_time == 0) %>%
+    select(PX_ID, wait_time, outcome, 
+         min_list_date, CAN_LISTING_DT, CAN_REM_CD, REC_TX_DT, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
+
+
+### For 0 time (same day), convert to 1-day time
+df_cand_kipa$wait_time[df_cand_kipa$wait_time == '0'] <- 1
+```
+
+
+### Check wait time variable for negative time
+```{r, warning=F, comment=NA}
+df_cand_kipa %>%
+  filter(wait_time < 0) %>%
+    select(PX_ID, PERS_ID, wait_time, outcome, list_type,
+         min_list_date, CAN_LISTING_DT, CAN_REM_CD, REC_TX_DT, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
+
+
+### If censored or removed, recalculate based on last active status date
+df_cand_kipa <- df_cand_kipa %>%
+  mutate(wait_time = case_when(
+    wait_time < 0 & (outcome == 'removed/died' | outcome == 'censored') ~ CAN_LAST_ACT_STAT_DT - min_list_date,
+    TRUE ~ wait_time
+  ))
+```
+
+
+### Check wait time variable for missing time
+```{r, warning=F, comment=NA}
+df_cand_kipa %>%
+  filter(is.na(wait_time)) %>%
+    select(PX_ID, PERS_ID, wait_time, outcome, list_type,
+         min_list_date, CAN_LISTING_DT, CAN_REM_CD, REC_TX_DT, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
+
+### Recalculate based on last inactive status date
+df_cand_kipa <- df_cand_kipa %>%
+  mutate(wait_time = case_when(
+    is.na(wait_time) ~ CAN_LAST_INACT_STAT_DT - min_list_date,
+    TRUE ~ wait_time
+  ))
+
+
+
+df_cand_kipa <- df_cand_kipa %>% select(-c(CAN_LISTING_DT, CAN_REM_CD, CAN_REM_DT, REC_TX_DT,
+                                           CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT, CAN_DEATH_DT,
+                                           PERS_SSA_DEATH_DT, PERS_OPTN_DEATH_DT))
+```
+
+
+---------------------------------------
 
 
 # Exclude listings missing key variables
@@ -694,8 +850,11 @@ df_cand_kipa <- df_cand_kipa %>%
   drop_na(race)
 
 n_no_race <- unique_listings - (n_no_dm + n_no_age + n_no_prev_tx + (df_cand_kipa$PX_ID %>% unique() %>% length()))
-
 ```
+
+
+---------------------------------------
+
 
 # Write file out
 ```{r, warning=F, comment=NA}
