@@ -1,23 +1,24 @@
 ---
-title: "Post-Transplant Sensitivity Analyses"
-output: 
+title: "Post-Transplant Analyses"
+output:
   html_document:
     toc: true
+    df_print: paged
+authors: Kevin Zhang, Nour Asfour, and William Parker
 ---
 
-<!-- All adult deceased recipients (Line 41) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 by race/Figure 3 (Line 70) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 by race, no 2015 (Line 105) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race (Line 136) -->
-<!-- KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race, no 2015 (Line 171) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 201) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 242) -->
+<!-- All adult recipients (Line 55) -->
+<!-- KM curve for death with functioning graft with top EPTS < 20 by race/Figure 3 (Line 84) -->
+<!-- KM curve for death with functioning graft with top EPTS < 20 by race, no 2015 (Line 119) -->
+<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race (Line 150) -->
+<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race, no 2015 (Line 185) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 216) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 256) -->
 
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
 rm(list=ls()); gc()
-setwd('C:/Users/kevinz94/Desktop/EPTS_Score')
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, tidycmprsk, ggsurvfit, lubridate)
@@ -25,30 +26,43 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 load('./recipients.RData')
-load('./candidates.RData')
-
-
-df_cand_kipa <- df_cand_kipa %>% select(PX_ID, PERS_ID, kdpi, top20_kdpi, top_percentile_epts, time, listing_date)
-df_recipients <- merge(df_recipients, df_cand_kipa, by=c('PX_ID', 'PERS_ID'), all.x=T, all.y=F)
 df_recipients$race_tx <- droplevels(df_recipients$race_tx)
+df_recipients$race_tx <- factor(df_recipients$race_tx, levels=c('White', 'Black_AA', 'Hispanic', 'Asian',
+                                                                'American_Indian', 'Pacific_Islander', 'Other'))
+
+
+df_recipients <- df_recipients %>%
+   mutate(
+    top20_kdpi = case_when(
+      kdpi <= 20 & !is.na(kdpi) ~ '1',
+      TRUE ~ '0'),
+    
+    not_top20_kdpi = case_when(
+      kdpi > 20 & !is.na(kdpi) ~ '1',
+      TRUE ~ '0')) %>%
+  
+  
+   mutate(
+     top20_kdpi = factor(top20_kdpi, levels=c(0,1)),
+     not_top20_kdpi = factor(not_top20_kdpi, levels=c(0,1)))
 ```
 
 -----------------
 
 
-### All adult deceased recipients
+### All adult recipients
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=9}
 df_recipients_table1 <- df_recipients %>%
   filter(living_donor == '0') %>%
   select(race_tx, diabetes_cat_tx, age_tx, sex_tx, previous_TX_KI, 
-         preemptive_listing_KI, time, kdpi, top20_kdpi)
+         preemptive_listing_KI, time_listing_tx, kdpi, top20_kdpi)
 
 
 tbl_summary(df_recipients_table1, by = race_tx,
             label = list(diabetes_cat_tx ~ 'Diabetic', 
                         age_tx ~ 'Age at Transplant',
                         sex_tx ~ 'Gender',
-                        time  ~ 'Waitlist Time (Listing to Transplant), Days', 
+                        time_listing_tx  ~ 'Waitlist Time (Listing to Transplant), Years', 
                         previous_TX_KI ~ 'Previous Transplant',
                         preemptive_listing_KI ~ 'Pre-Emptive Listing',                        
                         kdpi ~ 'KDPI Score',
@@ -65,7 +79,7 @@ tbl_summary(df_recipients_table1, by = race_tx,
 -----------------
 
 
-### KM curve among adult deceased recipients with top EPTS < 20 by race (Figure 3)
+### KM curve for death with functioning graft with top EPTS < 20 by race (Figure 3)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
 df_recipients_top20 <- subset(df_recipients, df_recipients$top_percentile_epts == '1' & 
                                 df_recipients$living_donor == '0')
@@ -75,7 +89,7 @@ df_recipients_top20$race_tx <- factor(df_recipients_top20$race_tx,
                                       levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
 
 
-fit_top20 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+fit_top20 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
                                data = df_recipients_top20)
 
 p <- ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
@@ -100,13 +114,13 @@ p
 -----------------
 
 
-### KM curve among adult deceased recipients with top EPTS < 20 by race, no 2015 (Figure 3 equivalent)
+### KM curve for death with functioning graft with top EPTS < 20 by race, no 2015 (Figure 3 equivalent)
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
 df_recipients_top20_no2015 <- subset(df_recipients_top20,
-                                     year(as.Date(df_recipients_top20$listing_date)) != 2015)
+                                     year(as.Date(df_recipients_top20$listing_date_tx)) != 2015)
 
 
-fit_top20_no2015 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+fit_top20_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
                                       data = df_recipients_top20_no2015)
 
 p <- ggsurvplot(fit_top20_no2015, data = df_recipients_top20_no2015, size = 1.2, censor = F,
@@ -131,7 +145,7 @@ p
 -----------------
 
 
-### KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race
+### KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
 df_recipients_top20_kpdi <- subset(df_recipients, df_recipients$top_percentile_epts == '1' & 
                                      df_recipients$top20_kdpi == '1' & df_recipients$living_donor == '0')
@@ -141,7 +155,7 @@ df_recipients_top20_kpdi$race_tx <- factor(df_recipients_top20_kpdi$race_tx,
                                            levels=c('White', 'Black_AA', 'Hispanic', 'Asian'))
 
 
-fit_top20_kpdi <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+fit_top20_kpdi <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
                                     data = df_recipients_top20_kpdi)
 
 p <- ggsurvplot(fit_top20_kpdi, data = df_recipients_top20_kpdi, size = 1.2, censor = F,
@@ -166,13 +180,13 @@ p
 -----------------
 
 
-### KM curve among adult deceased recipients with EPTS < 20 and top 20% KDPI by race, no 2015
+### KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race, no 2015
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.height=9, fig.width=9}
 df_recipients_top20_kpdi_no2015 <- subset(df_recipients_top20_kpdi,
-                                     year(as.Date(df_recipients_top20_kpdi$listing_date)) != 2015)
+                                     year(as.Date(df_recipients_top20_kpdi$listing_date_tx)) != 2015)
 
 
-fit_top20_kdpi_no2015 <- survival::survfit(Surv(time_tx_death_days / 365.25, death_functioning_graft) ~ race_tx, 
+fit_top20_kdpi_no2015 <- survival::survfit(Surv(time_to_death_function / 365.25, death_with_function) ~ race_tx, 
                                            data = df_recipients_top20_kpdi_no2015)
 
 p <- ggsurvplot(fit_top20_kdpi_no2015, data = df_recipients_top20_kpdi_no2015, size = 1.2, censor = F,
@@ -202,14 +216,14 @@ p
 df_recipients_top20 <- df_recipients_top20 %>%
   
   mutate(status_death_with_function = case_when(
-    death_functioning_graft == '1' ~ 1,
+    death_with_function == '1' ~ 1,
     graft_failure == '1' ~ 2,
     TRUE ~ 0),
     
     time_death_with_function = case_when(
-      status_death_with_function == '1' ~ time_tx_death_days,
-      status_death_with_function == '2' ~ time_tx_graft_failure_days,
-      TRUE ~ time_tx_fu_days)) %>%
+      status_death_with_function == '1' ~ time_to_death_function,
+      status_death_with_function == '2' ~ time_graft_failure,
+      TRUE ~ time_fu)) %>%
   
   mutate(status_death_with_function = factor(status_death_with_function, levels = c(0,1,2)))
   
