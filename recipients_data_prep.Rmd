@@ -4,7 +4,7 @@ output:
   html_document:
     toc: true
     df_print: paged
-authors: Kevin Zhang and Nour Asfour
+authors: Kevin Zhang, Nour Asfour, and William Parker
 ---
 
 ```{r setup, include=FALSE}
@@ -121,8 +121,8 @@ df_recipients <- df_tx_ki
 rm(df_tx_ki)
 
 
-### Transplant time
-df_recipients$transplant_time <- as.numeric(difftime(df_recipients$transplant_date_tx, 
+### Time from listing to transplant in years
+df_recipients$time_listing_tx <- as.numeric(difftime(df_recipients$transplant_date_tx, 
                                                      df_recipients$listing_dt_tx, units = 'weeks')) / 52.25
 
 
@@ -383,6 +383,76 @@ df_recipients <- df_recipients %>%
            case_when(
              !is.na(graft_failure_dt) | !is.na(death_date_tx) ~ 1,
              TRUE ~ 0))
+```
+
+
+---------------------------------------
+
+
+# Check time variables 
+### Death with functioning graft
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(death_with_function == 1) %>%
+  select(PX_ID, transplant_date_tx, death_date_tx, 
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
+         graft_failure, death_with_function, graft_survival)
+
+
+### For 0 time (same day), convert to 1-day time
+df_recipients$time_to_death_function[df_recipients$time_to_death_function== 0] <- 1
+
+
+df_recipients %>%
+  filter(time_to_death_function < 0)
+```
+
+
+### Graft failure
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(graft_failure == 1) %>%
+  select(PX_ID, transplant_date_tx, death_date_tx, 
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
+         graft_failure, death_with_function, graft_survival)
+
+
+### For 0 time (same day), convert to 1-day time
+df_recipients$time_graft_failure[df_recipients$time_graft_failure == 0] <- 1
+
+
+df_recipients %>%
+  filter(time_graft_failure < 0)
+```
+
+
+### Graft survival
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(graft_survival == 1) %>%
+  select(PX_ID, transplant_date_tx, death_date_tx, 
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
+         graft_failure, death_with_function, graft_survival)
+
+
+### For 0 time (same day), convert to 1-day time
+df_recipients$time_graft_survival[df_recipients$time_graft_survival == 0] <- 1
+
+
+df_recipients %>%
+  filter(time_graft_survival < 0)
+```
+
+
+### Followup
+```{r, warning=F, comment=NA}
+
+### For 0 time (same day), convert to 1-day time
+df_recipients$time_fu[df_recipients$time_fu == 0] <- 1
+
+
+df_recipients %>%
+  filter(time_fu < 0)
 ```
 
 
