@@ -24,13 +24,15 @@ Updated 3/8/23: Code is overhauled to add alternative dataset with patients wait
 Updated 5/12/23: Renamed to candidate_data_prep and converted to a notebook. Includes living donors.
 
 
-### 3. recipients.R
+### 3. recipients_data_prep.Rmd
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data.
 
 Updated 2/16/23: Different dialysis time variables are created. Additional gender variable is added.
 
 Updated 3/8/23: Code is overhauled, time variables are reworked. Merging with candidates file is now performed in
 recipients_analysis.Rmd.
+
+Updated 5/12/23: Renamed to recipients_data_prep and converted to a notebook. Selection criteria is now based on transplant date, not listing date.
 
 
 ### 4. candidates_analysis.Rmd
