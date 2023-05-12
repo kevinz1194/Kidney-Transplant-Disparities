@@ -4,7 +4,7 @@ output:
   html_document:
     toc: true
     df_print: paged
-authors: Kevin Zhang, Nour Asfour, and William Parker
+authors: Kevin Zhang and Nour Asfour
 ---
 
 ```{r setup, include=FALSE}
@@ -457,6 +457,20 @@ df_recipients %>%
 
 
 ---------------------------------------
+
+# Obtain KDPI from fulldata
+```{r, warning=F, comment=NA}
+df_kdpi <- read.csv('./fulldata_for_epts.csv')
+df_kdpi <- df_kdpi[ ,c('PX_ID', 'kdpi')]
+df_kdpi <- df_kdpi[!duplicated(df_kdpi), ]
+
+
+df_recipients <- merge(df_recipients, df_kdpi, by = 'PX_ID', all.x = T, all.y = F)
+```
+
+
+---------------------------------------
+
 
 
 # Write file out
