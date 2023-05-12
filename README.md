@@ -50,6 +50,8 @@ Updated 3/17/23: Sections removed to contain only necessary code for article. Up
 
 Updated 3/22/23: Tables updated.
 
+Updated 5/12/23: Updated to be compatible with the new code.
+
 
 ### 5. candidates_analysis_sensitivity.Rmd 
 Candidate analyses on the two alternative candidate datasets.
