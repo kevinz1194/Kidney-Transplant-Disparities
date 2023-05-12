@@ -2,7 +2,10 @@ Code files corresponding to the 'Association of Race and Ethnicity with Priority
 
 All files are written and tested using R 4.2.2. Files should be run in this order:
 
-### 1. 
+### 1. KDPI_for_EPTS.Rmd
+Sets up dataset to calculate KDPI score.
+
+Updated 5/10/23: Added.
 
 ### 2. candidate_data_prep.Rmd
 Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
