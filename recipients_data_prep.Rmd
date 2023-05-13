@@ -149,8 +149,8 @@ df_recipients <- df_recipients %>%
 
 
 ### Time to graft failure in days
-df_recipients$time_graft_failure <- df_recipients %>% 
-  mutate(time_to_death_function = 
+df_recipients <- df_recipients %>% 
+  mutate(time_graft_failure = 
            case_when(!is.na(graft_failure_dt) ~ 
                        as.numeric(as.Date(graft_failure_dt) - as.Date(transplant_date_tx), units = 'days'),
                      TRUE ~ time_fu))
