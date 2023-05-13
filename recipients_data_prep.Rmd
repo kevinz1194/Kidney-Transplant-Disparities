@@ -136,32 +136,35 @@ df_recipients <- df_recipients%>%
 df_recipients$dialysis_time_at_transplant <- -round(df_recipients$dialysis_time_at_transplant, digits = 1)
 
 
+### Time to followup in days
+df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$transplant_date_tx, units = 'days')
+
 
 ### Time to death with functioning graft in days
 df_recipients <- df_recipients %>% 
   mutate(time_to_death_function = 
            case_when(!is.na(death_date_tx) == '1' ~ 
-                       as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days')))
+                       as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days'),
+                     TRUE ~ time_fu))
 
 
 ### Time to graft failure in days
 df_recipients$time_graft_failure <- 
-  as.numeric(df_recipients$graft_failure_dt - df_recipients$transplant_date_tx, units = 'days')
+  mutate(time_to_death_function = 
+           case_when(!is.na(graft_failure_dt) == '1' ~ 
+                       as.numeric(as.Date(graft_failure_dt) - as.Date(transplant_date_tx), units = 'days'),
+                     TRUE ~ time_fu))
 
 
 
 ### Graft survival time in days
 df_recipients <- df_recipients %>% 
   mutate(time_graft_survival = 
-           case_when(
-             !is.na(death_date_tx) | !is.na(graft_failure_dt) ~
+           case_when(!is.na(death_date_tx) | !is.na(graft_failure_dt) ~
                as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - transplant_date_tx, 
-                          units = 'days')))
+                          units = 'days'),
+             TRUE ~ time_fu))
 
-
-
-### Time to followup in days
-df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$transplant_date_tx, units = 'days')
 ```
 
 
