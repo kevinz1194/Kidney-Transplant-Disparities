@@ -25,7 +25,7 @@ rm(list=ls()); gc()
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, 
-               tidycmprsk, ggsurvfit, cowplot)
+               tidycmprsk, ggsurvfit, cowplot, lubridate)
 knitr::opts_chunk$set(echo = FALSE)
 
 load('./candidates_w_ldkt_recips.RData')
@@ -51,7 +51,7 @@ df_cand_kipa <- df_cand_kipa %>%
 
 
 
-df_cand_kipa <- subset(df_cand_kipa, year(as.Date(df_cand_kipa$listing_date)) != 2015)
+df_cand_kipa <- subset(df_cand_kipa, lubridate::year(as.Date(df_cand_kipa$min_list_date)) != 2015)
 ```
 
 -----------------
