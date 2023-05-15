@@ -381,7 +381,7 @@ plot_30_39 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  xlim(0, 5) + ylim(0, 0.4) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                   'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
@@ -402,7 +402,7 @@ plot_40_49 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  xlim(0, 5) + ylim(0, 0.4) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), 
@@ -425,7 +425,7 @@ plot_50_59 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  xlim(0, 5) + ylim(0, 0.4) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
