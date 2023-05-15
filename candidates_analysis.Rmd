@@ -14,11 +14,11 @@ authors: Kevin Zhang, Nour Asfour, and William Parker
 <!-- Logistic regression for EPTS, includes living donors (Line 214) -->
 <!-- Survival plots for competing risks/Figure 2 (Line 243) -->
 <!-- Top 20% KDPI for top 20% EPTS only (Line 346) -->
-<!-- Adjusted results for age (Line 377) -->
+<!-- Adjusted results for age (Line 378) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
-rm(list=ls()); gc()
+rm(list=ls()); invisible(gc())
 if (!require('pacman')) {install.packages('pacman')}
 library(pacman)
 pacman::p_load(tidyverse, Hmisc, survival, survminer, ggplot2, gtsummary, knitr, kableExtra, 
@@ -372,9 +372,88 @@ ggcuminc(top20_cuminc,
 ----------------------
 
 
-### Adjusted results for age
+### Adjusted results for age: plots
+Note: Legends and titles must be manually added.
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
+cuminc_age_adjusted <- cuminc(Surv(wait_time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race)
+
+plot_30_39 <- ggcuminc(cuminc_age_adjusted, 
+         outcome = '1',
+         size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative incidence') +
+  xlim(0, 5) + ylim(0, 0.5) +
+  theme_bw() + 
+  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+                                  'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
+                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7)), guide = 'none') +
+  theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+    axis.text.x = element_text(size = 13, margin = margin(t=5)), 
+    axis.title.y = element_text(size = 14, margin = margin(r=5)),
+    axis.text.y = element_text(size = 13, margin = margin(r=5)),
+    legend.title = element_blank(),
+    legend.text = element_blank(),
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+
+
+plot_40_49 <- ggcuminc(cuminc_age_adjusted, 
+         outcome = '1',
+         size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative incidence') +
+  xlim(0, 5) + ylim(0, 0.5) +
+  theme_bw() + 
+  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), 
+                                'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
+                                rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7)), guide = 'none') +
+  theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+    axis.text.x = element_text(size = 13, margin = margin(t=5)), 
+    axis.ticks.y = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    legend.title = element_blank(),
+    legend.text = element_blank(),
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+
+
+plot_50_59 <- ggcuminc(cuminc_age_adjusted, 
+         outcome = '1',
+         size = 1.2) + 
+  labs(x = 'Time (years)', y = 'Cumulative incidence') +
+  xlim(0, 5) + ylim(0, 0.5) +
+  theme_bw() + 
+  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+                                'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
+                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7)), guide = 'none') +
+  theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size = 14, margin = margin(t=5)), 
+    axis.text.x = element_text(size = 13, margin = margin(t=5)), 
+    axis.ticks.y = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    legend.title = element_blank(),
+    legend.text = element_blank(),
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+
+
+
+
+cowplot::plot_grid(plot_30_39, plot_40_49, plot_50_59, align = 'h', ncol = 3)
+```
+
+----------------------
+
+
+### Adjusted results for age: regression
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=12, fig.height=12}
-### Adjust age groups
+# ### Adjust age groups
 crr(Surv(wait_time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race) %>%
    tbl_regression(exp = T)
 ```
