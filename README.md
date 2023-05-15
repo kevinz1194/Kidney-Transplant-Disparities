@@ -24,6 +24,8 @@ Updated 3/8/23: Code is overhauled to add alternative dataset with patients wait
 
 Updated 5/12/23: Renamed to candidate_data_prep and converted to a notebook. Includes living donors.
 
+Updated 5/15/23: Race variable modified to account for other cases.
+
 
 ### 3. recipients_data_prep.Rmd
 Sets up corresponding dataset of kidney transplant recipients, based on SRTR TX_KI data.
@@ -35,7 +37,7 @@ recipients_analysis.Rmd.
 
 Updated 5/12/23: Renamed to recipients_data_prep and converted to a notebook. Selection criteria is now based on transplant date, not listing date.
 
-Updated 5/15/23: Race variable modified to account for other cases.
+Updated 5/15/23: Race variable modified to account for other cases. Time to death (general) is added.
 
 
 ### 4. candidates_analysis.Rmd
