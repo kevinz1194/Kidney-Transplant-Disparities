@@ -4,7 +4,7 @@ output:
   html_document:
     toc: true
     df_print: paged
-authors: Kevin Zhang, Nour Asfour, and William Parker
+authors: Kevin Zhang and Nour Asfour
 ---
 
 ```{r setup, include=FALSE}
@@ -161,9 +161,9 @@ df_recipients <- df_recipients %>%
 
 
 
-### Graft survival time in days
+### Graft survival time (Death or Graft Failure) in days
 df_recipients <- df_recipients %>% 
-  mutate(time_graft_survival = 
+  mutate(time_death_or_graft_failure = 
            case_when(!is.na(death_date_tx) | !is.na(graft_failure_dt) ~
                as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - transplant_date_tx, 
                           units = 'days'),
@@ -389,7 +389,7 @@ df_recipients <- df_recipients %>%
            case_when(!is.na(graft_failure_dt) ~ 1,
                      TRUE ~ 0),
          
-         graft_survival = 
+         death_or_graft_failure = 
            case_when(
              !is.na(graft_failure_dt) | !is.na(death_date_tx) ~ 1,
              TRUE ~ 0))
@@ -406,7 +406,7 @@ df_recipients %>%
   filter(death == 1) %>%
   select(PX_ID, transplant_date_tx, death_date_tx, 
          graft_failure_dt, followup_dt, time_to_death_function, time_to_death, 
-         time_graft_failure, time_graft_survival, time_fu, graft_failure, death_with_function, graft_survival)
+         time_graft_failure, time_death_or_graft_failure, time_fu, graft_failure, death_with_function, death_or_graft_failure)
 
 
 ### For 0 time (same day), convert to 1-day time
@@ -423,8 +423,8 @@ df_recipients %>%
 df_recipients %>%
   filter(death_with_function == 1) %>%
   select(PX_ID, transplant_date_tx, death_date_tx, 
-         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
-         graft_failure, death_with_function, graft_survival)
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_death_or_graft_failure, time_fu,
+         graft_failure, death_with_function, death_or_graft_failure)
 
 
 ### For 0 time (same day), convert to 1-day time
@@ -441,8 +441,8 @@ df_recipients %>%
 df_recipients %>%
   filter(graft_failure == 1) %>%
   select(PX_ID, transplant_date_tx, death_date_tx, 
-         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
-         graft_failure, death_with_function, graft_survival)
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_death_or_graft_failure, time_fu,
+         graft_failure, death_with_function, death_or_graft_failure)
 
 
 ### For 0 time (same day), convert to 1-day time
@@ -454,21 +454,21 @@ df_recipients %>%
 ```
 
 
-### Graft survival
+### Graft survival (Death or Graft Failure)
 ```{r, warning=F, comment=NA}
 df_recipients %>%
-  filter(graft_survival == 1) %>%
+  filter(death_or_graft_failure == 1) %>%
   select(PX_ID, transplant_date_tx, death_date_tx, 
-         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_graft_survival, time_fu,
-         graft_failure, death_with_function, graft_survival)
+         graft_failure_dt, followup_dt, time_to_death_function, time_graft_failure, time_death_or_graft_failure, time_fu,
+         graft_failure, death_with_function, death_or_graft_failure)
 
 
 ### For 0 time (same day), convert to 1-day time
-df_recipients$time_graft_survival[df_recipients$time_graft_survival == 0] <- 1
+df_recipients$time_death_or_graft_failure[df_recipients$time_death_or_graft_failure == 0] <- 1
 
 
 df_recipients %>%
-  filter(time_graft_survival < 0)
+  filter(time_death_or_graft_failure < 0)
 ```
 
 
