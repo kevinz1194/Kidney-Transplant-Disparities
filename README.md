@@ -35,6 +35,8 @@ recipients_analysis.Rmd.
 
 Updated 5/12/23: Renamed to recipients_data_prep and converted to a notebook. Selection criteria is now based on transplant date, not listing date.
 
+Updated 5/15/23: Race variable modified to become more accurate.
+
 
 ### 4. candidates_analysis.Rmd
 Runs tabulations and multivariable regressions for EPTS and KDPI scores in the candidates dataset. Runs competing risks analysis with KDPI score.
