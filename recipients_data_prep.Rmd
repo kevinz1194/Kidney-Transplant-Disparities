@@ -4,7 +4,7 @@ output:
   html_document:
     toc: true
     df_print: paged
-authors: Kevin Zhang and Nour Asfour
+authors: Kevin Zhang, Nour Asfour, and William Parker
 ---
 
 ```{r setup, include=FALSE}
@@ -27,7 +27,7 @@ df_tx_ki <- df_tx_ki %>%
   filter(ORG_TY== 'KI') %>%
   filter(CAN_AGE_AT_LISTING >= 18) %>%
   
-  select(PX_ID, PERS_ID, CAN_RACE, CAN_GENDER, CAN_LISTING_DT,
+  select(PX_ID, PERS_ID, CAN_RACE, CAN_ETHNICITY_SRTR, CAN_GENDER, CAN_LISTING_DT,
          CAN_PREV_TX, PERS_OPTN_DEATH_DT, PERS_SSA_DEATH_DT, CAN_DIAB_TY,
          TFL_DEATH_DT, TFL_LAFUDATE, REC_PRETX_DIAL, REC_DIAL_DT, REC_AGE_AT_TX, REC_TX_DT,
          TFL_GRAFT_DT, DON_TY)
@@ -72,15 +72,13 @@ df_tx_ki <- df_tx_ki %>%
     listing_dt_tx = as.Date(CAN_LISTING_DT),
     
     race_tx = case_when(
-      CAN_RACE == '8' ~ 'White',
-      CAN_RACE == '16' ~ 'Black_AA',
-      CAN_RACE == '32' ~ 'American_Indian',
-      CAN_RACE == '64' ~ 'Asian',
-      CAN_RACE == '128' ~ 'Pacific_Islander',
-      CAN_RACE == '256' ~ 'Arab_Middle_East',
-      CAN_RACE == '512' ~ 'Indian_SubContinent',
-      CAN_RACE == '1024' ~ 'Unknown',
-      CAN_RACE == '2000' ~ 'Hispanic',
+      CAN_RACE == '8' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'White',
+      CAN_RACE == '16' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'Black_AA',
+      CAN_RACE == '32' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'American_Indian',
+      CAN_RACE == '64' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'Asian',
+      CAN_RACE == '128' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'Pacific_Islander',
+      CAN_RACE == '1024' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'Unknown',
+      CAN_RACE == '2000' & CAN_ETHNICITY_SRTR == 'LATINO' ~ 'Hispanic',
       TRUE ~ 'Other'),
     
     diabetes_cat_tx = case_when(
@@ -118,13 +116,11 @@ df_tx_ki$race_tx <- factor(df_tx_ki$race_tx, levels=c('White', 'American_Indian'
 # Create time variables
 ```{r, warning=F, comment=NA}
 df_recipients <- df_tx_ki
-rm(df_tx_ki)
 
 
 ### Time from listing to transplant in years
 df_recipients$time_listing_tx <- as.numeric(difftime(df_recipients$transplant_date_tx, 
                                                      df_recipients$listing_dt_tx, units = 'weeks')) / 52.25
-
 
 
 ### Dialysis years prior to transplant
@@ -140,10 +136,18 @@ df_recipients$dialysis_time_at_transplant <- -round(df_recipients$dialysis_time_
 df_recipients$time_fu <- as.numeric(df_recipients$followup_dt - df_recipients$transplant_date_tx, units = 'days')
 
 
+### Time to death (general) in days
+df_recipients <- df_recipients %>% 
+  mutate(time_to_death = 
+           case_when(!is.na(death_date_tx) ~ 
+                       as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days'),
+                     TRUE ~ time_fu))
+
+
 ### Time to death with functioning graft in days
 df_recipients <- df_recipients %>% 
   mutate(time_to_death_function = 
-           case_when(!is.na(death_date_tx) ~ 
+           case_when(!is.na(death_date_tx) & !is.na(graft_failure_dt)  ~ 
                        as.numeric(as.Date(death_date_tx) - as.Date(transplant_date_tx), units = 'days'),
                      TRUE ~ time_fu))
 
@@ -164,7 +168,6 @@ df_recipients <- df_recipients %>%
                as.numeric(as.Date(pmin(death_date_tx, graft_failure_dt, na.rm = T)) - transplant_date_tx, 
                           units = 'days'),
              TRUE ~ time_fu))
-
 ```
 
 
@@ -374,7 +377,11 @@ df_recipients %>%
 # New post-transplant variables
 ```{r, warning=F, comment=NA}
 df_recipients <- df_recipients %>%
-  mutate(death_with_function = 
+  mutate(death = 
+           case_when(!is.na(death_date_tx)  ~ 1,
+                     TRUE ~ 0),
+         
+         death_with_function = 
            case_when(!is.na(death_date_tx) & is.na(graft_failure_dt) ~ 1,
                      TRUE ~ 0),
          
@@ -393,6 +400,24 @@ df_recipients <- df_recipients %>%
 
 
 # Check time variables 
+### Death
+```{r, warning=F, comment=NA}
+df_recipients %>%
+  filter(death == 1) %>%
+  select(PX_ID, transplant_date_tx, death_date_tx, 
+         graft_failure_dt, followup_dt, time_to_death_function, time_to_death, 
+         time_graft_failure, time_graft_survival, time_fu, graft_failure, death_with_function, graft_survival)
+
+
+### For 0 time (same day), convert to 1-day time
+df_recipients$time_to_death_function[df_recipients$time_to_death_function== 0] <- 1
+
+
+df_recipients %>%
+  filter(time_to_death < 0)
+```
+
+
 ### Death with functioning graft
 ```{r, warning=F, comment=NA}
 df_recipients %>%
@@ -461,6 +486,7 @@ df_recipients %>%
 
 ---------------------------------------
 
+
 # Obtain KDPI from fulldata
 ```{r, warning=F, comment=NA}
 df_kdpi <- read.csv('./fulldata_for_epts.csv')
@@ -473,7 +499,6 @@ df_recipients <- merge(df_recipients, df_kdpi, by = 'PX_ID', all.x = T, all.y = 
 
 
 ---------------------------------------
-
 
 
 # Write file out
