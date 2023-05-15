@@ -4,7 +4,7 @@ output:
   html_document:
     toc: true
     df_print: paged
-authors: Nour Asfour, Kevin Zhang, and William Parker
+authors: Kevin Zhang, Nour Asfour, and William Parker
 ---
 
 
@@ -423,10 +423,10 @@ df_cand_kipa <- df_cand_kipa %>%
            1.262*(diabetes_cat==1))
 
 
-## NA EPTS values check
+# NA EPTS values check
 # df_cand_kipa %>%
 #   filter(is.na(raw_epts)) %>%
-#   select(PERS_ID, CAN_AGE_AT_LISTING, diabetes_cat, CAN_PREV_TX, 
+#   select(PERS_ID, CAN_AGE_AT_LISTING, diabetes_cat, CAN_PREV_TX,
 #          dialysis_time_at_list, CAN_DIAL_DT, CAN_LISTING_DT, PX_ID, min_list_date)
 ```
 
@@ -621,15 +621,13 @@ df_cand_kipa %>%
 ```{r, warning=F, comment=NA}
 df_cand_kipa <- df_cand_kipa %>%
   mutate(race = case_when(
-    CAN_RACE == '8' ~ 'White',
-    CAN_RACE == '16' ~ 'Black_AA',
-    CAN_RACE == '32' ~ 'American_Indian',
-    CAN_RACE == '64' ~ 'Asian',
-    CAN_RACE == '128' ~ 'Pacific_Islander',
-    CAN_RACE == '256' ~ 'Arab_Middle_East',
-    CAN_RACE == '512' ~ 'Indian_SubContinent',
-    CAN_RACE == '1024' ~ 'Unknown',
-    CAN_RACE == '2000' ~ 'Hispanic',
+    CAN_RACE == '8' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'White',
+    CAN_RACE == '16' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'Black_AA',
+    CAN_RACE == '32' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'American_Indian',
+    CAN_RACE == '64' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'Asian',
+    CAN_RACE == '128' & CAN_ETHNICITY_SRTR == 'NLATIN'  ~ 'Pacific_Islander',
+    CAN_RACE == '1024' & CAN_ETHNICITY_SRTR == 'NLATIN' ~ 'Unknown',
+    CAN_RACE == '2000' & CAN_ETHNICITY_SRTR == 'LATINO' ~ 'Hispanic',
     TRUE ~ 'Other')) %>%
   
   mutate(sex = case_when(
@@ -652,14 +650,12 @@ df_cand_kipa <- df_cand_kipa %>%
       age > 39 & age <= 49 ~ '40-49',
       age > 49 & age <= 59 ~ '50-59',
       age > 59 & age <= 69 ~ '60-69',
-      TRUE ~ '>70')) %>%
-  
-  select(-c(CAN_RACE, CAN_PREV_TX, CAN_AGE_AT_LISTING, diabetes_cat))
+      TRUE ~ '>70'))
 
 df_cand_kipa$age_group <- factor(df_cand_kipa$age_group, levels=c('18-24', '25-29', '30-39',
                                                                   '40-49', '50-59', '60-69', '>70')) 
-df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'American_Indian', 'Arab_Middle_East',
-                                                        'Asian', 'Black_AA', 'Hispanic', 'Indian_SubContinent',
+df_cand_kipa$race <- factor(df_cand_kipa$race, levels=c('White', 'American_Indian', 
+                                                        'Asian', 'Black_AA', 'Hispanic',
                                                         'Other', 'Pacific_Islander', 'Unknown'))
 ```
 
@@ -808,7 +804,7 @@ df_cand_kipa <- df_cand_kipa %>%
 df_cand_kipa %>%
   filter(is.na(wait_time)) %>%
     select(PX_ID, PERS_ID, wait_time, outcome, list_type,
-         min_list_date, CAN_LISTING_DT, CAN_REM_CD, REC_TX_DT, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
+         min_list_date, CAN_REM_CD, REC_TX_DT, CAN_LAST_ACT_STAT_DT, CAN_LAST_INACT_STAT_DT) 
 
 ### Recalculate based on last inactive status date
 df_cand_kipa <- df_cand_kipa %>%
