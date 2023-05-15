@@ -35,7 +35,7 @@ recipients_analysis.Rmd.
 
 Updated 5/12/23: Renamed to recipients_data_prep and converted to a notebook. Selection criteria is now based on transplant date, not listing date.
 
-Updated 5/15/23: Race variable modified to become more accurate.
+Updated 5/15/23: Race variable modified to account for other cases.
 
 
 ### 4. candidates_analysis.Rmd
