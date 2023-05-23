@@ -11,10 +11,10 @@ authors: Kevin Zhang, Nour Asfour, and William Parker
 <!-- Average EPTS by age group and race, all donors/Figure 1A (Line 82) -->
 <!-- Average EPTS by age group and race, all donors, table (Line 129)  -->
 <!-- Proportion of candidates with EPTS < 20 by age group and race, all donors/Figure 1B (Line 159)  -->
-<!-- Logistic regression for EPTS, includes living donors (Line 214) -->
-<!-- Survival plots for competing risks/Figure 2 (Line 243) -->
-<!-- Top 20% KDPI for top 20% EPTS only (Line 346) -->
-<!-- Adjusted results for age (Line 378) -->
+<!-- Logistic regression for EPTS, includes living donors (Line 239) -->
+<!-- Survival plots for competing risks/Figure 2 (Line 268) -->
+<!-- Top 20% KDPI for top 20% EPTS only (Line 371) -->
+<!-- Adjusted results for age (Line 403) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -203,7 +203,32 @@ ggplot(df_cand_kipa_fig2,
     plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) 
 
 
-rm(df_cand_kipa_fig2)
+
+
+df_cand_kipa_table3 <- df_cand_kipa %>% 
+  group_by(race, age_group) %>%
+  
+  filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
+  
+  mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian')),
+         top_percentile_epts = as.numeric(top_percentile_epts)) %>%
+  
+  mutate(top_percentile_epts = case_when(
+    top_percentile_epts == 1 ~ 0,
+    top_percentile_epts == 2 ~ 1)) %>%
+  
+  summarise(result = round(100 * mean(top_percentile_epts), 2)) %>%
+  
+  select(race, age_group, result) %>% 
+  
+  pivot_wider(names_from = race, values_from = result)
+  
+
+kable(df_cand_kipa_table3, align=c('l', rep('c', 7))) %>%
+  kable_classic()
+
+
+rm(df_cand_kipa_table2, df_cand_kipa_table3)
 ```
 
 ----------------------
@@ -381,7 +406,7 @@ plot_30_39 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.4) +
+  xlim(0, 5) + ylim(0, 0.5) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                   'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
@@ -402,7 +427,7 @@ plot_40_49 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.4) +
+  xlim(0, 5) + ylim(0, 0.5) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), 
@@ -425,7 +450,7 @@ plot_50_59 <- ggcuminc(cuminc_age_adjusted,
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.4) +
+  xlim(0, 5) + ylim(0, 0.5) +
   theme_bw() + 
   scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
