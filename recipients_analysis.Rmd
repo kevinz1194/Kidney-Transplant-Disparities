@@ -153,7 +153,7 @@ fit_top20 <- survival::survfit(Surv(time_to_death_function / 365.65, death_with_
                                data = df_recipients_top20)
 
 p <- ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
-                conf.int = F, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
+                conf.int = T, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
                 legend = 'right',
                 xlim = c(0,5), ylim = c(0.9, 1), pval.coord = c(4, 0.92),
                 risk.table = T,        
