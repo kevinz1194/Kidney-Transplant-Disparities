@@ -1,4 +1,4 @@
-Code files corresponding to the *Association of Race and Ethnicity with Priority for Deceased Donor Kidney Transplant*. <br />
+Code files corresponding to the *Association of Race and Ethnicity with Priority for Deceased Donor Kidney Transplant* by Asfour, Zhang, et al. <br />
 
 All files are written and tested using R 4.2.2. Files should be run in this order:
 
