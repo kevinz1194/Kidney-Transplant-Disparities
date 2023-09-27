@@ -10,6 +10,8 @@ KDRI to KDPI is based on the March 2022 Mapping Table, available at: https://opt
 
 Updated 5/10/23: Added.
 
+Updated 9/26/23: Additional section converting EPTS to a time-dependent variable is added.
+
 
 ### 2. candidate_data_prep.Rmd
 Sets up dataset of all 2015-2020 kidney waitlist candidates from over 18 and excluding living donors from the SRTR (Scientific Registry of Transplant Recipients) CAND_KIPA raw data. Analysis is done at the registration level.
