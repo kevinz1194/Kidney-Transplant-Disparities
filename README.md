@@ -10,7 +10,7 @@ KDRI to KDPI is based on the March 2022 Mapping Table, available at: https://opt
 
 Updated 5/10/23: Added.
 
-Updated 9/26/23: Additional section converting EPTS to a time-dependent variable is added.
+Updated 9/27/23: Additional section converting EPTS to a time-dependent variable is added.
 
 
 ### 2. candidate_data_prep.Rmd
