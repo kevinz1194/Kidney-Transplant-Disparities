@@ -922,7 +922,7 @@ df_intervals <- df_intervals %>%
                                                    (CAN_DIAL_DT - min_list_date),
                                                  units = 'days'),
     row_number() == 2 & counts == 2 & dialysis == 1 ~ 
-      rowsum(dialysis_time_at_list, time),
+      dialysis_time_at_list + time,
     TRUE ~ dialysis_time_at_list))
   
 
