@@ -14,7 +14,7 @@ library(tidyverse)
 library(lubridate)
 library(haven)
 
-
+setwd('C:/Users/Kevin (Work)/Desktop/EPTS')
 start_date <- '2015-01-01'
 end_date <- '2020-12-31'
 living_donor_recips <- TRUE
@@ -705,7 +705,8 @@ df_cand_kipa <- df_cand_kipa %>%
          outcome, list_type, waitlist_end_date, wait_time, min_list_date, last_wait_date,
          age, age_group, sex, race, diabetes, dialysis, dialysis_time_at_list,
          preemptive_listing, preemptive_transplant, previous_TX,
-         CAN_LISTING_DT, CAN_REM_CD, CAN_REM_DT, REC_TX_DT, CAN_LAST_INACT_STAT_DT, CAN_LAST_ACT_STAT_DT, 
+         CAN_LISTING_DT, CAN_DIAL_DT, CAN_REM_CD, CAN_REM_DT, REC_TX_DT, 
+         CAN_LAST_INACT_STAT_DT, CAN_LAST_ACT_STAT_DT, 
          CAN_DEATH_DT, PERS_SSA_DEATH_DT, PERS_OPTN_DEATH_DT)
 
 
@@ -861,4 +862,229 @@ if (living_donor_recips == TRUE) {
 }
 
 save(df_cand_kipa, file = f_name)
+```
+
+
+---------------------------------------
+
+
+# Setup a time-dependent EPTS by adding intervals
+```{r, warning=F, comment=NA}
+df_top_epts <- df_cand_kipa %>% 
+  filter(top_percentile_epts == '1') %>%
+  select(PX_ID, min_list_date, previous_TX, dialysis, 
+         dialysis_time_at_list, diabetes, age, CAN_DIAL_DT, 
+         waitlist_end_date)
+## rm(df_top_epts_cand_kipa, df_top_epts_cand_kipa_all, df_top_epts_kdpi); gc() ##
+
+
+df_top_epts$time_on_list <- as.numeric(df_top_epts$waitlist_end_date - df_top_epts$min_list_date, 
+                              units = 'days')
+df_top_epts$dialysis_during_waitlist <- ifelse(df_top_epts$CAN_DIAL_DT > df_top_epts$min_list_date, 1, 0)
+df_top_epts$dialysis_during_waitlist[is.na(df_top_epts$dialysis_during_waitlist)] <- 0
+
+df_top_epts <- df_top_epts %>% select(-c(waitlist_end_date))
+
+
+# Add extra rows: 1 row to account for the extra age accumulated during waitlist, another
+# for dialysis status change
+df_top_epts$counts <- 2 + df_top_epts$dialysis_during_waitlist
+row_reps <- rep(1:nrow(df_top_epts), df_top_epts$counts)
+df_intervals <- df_top_epts[row_reps, ]
+rownames(df_intervals) <- seq(1:nrow(df_intervals))
+
+
+## Setup time changes (for age)
+df_intervals <- df_intervals %>% 
+  group_by(PX_ID) %>%
+  mutate(time = case_when(
+    row_number() == 1 ~ 0,
+    row_number() == 2 & counts == 2 ~ time_on_list,
+    row_number() == 2 & counts == 3 ~ as.numeric(CAN_DIAL_DT - min_list_date,
+                                                 units = 'days'),
+    row_number() == 3 ~ time_on_list))
+
+
+### Setup age changes and dialysis
+df_intervals$age <- df_intervals$age + (df_intervals$time / 365.25)
+df_intervals <- df_intervals %>%
+  group_by(PX_ID) %>%
+  mutate(dialysis = case_when(
+    row_number() != 1 & counts == 3 ~ '1',
+    TRUE ~ dialysis))
+
+
+## Setup dialysis time at list to dialysis time at current interval
+df_intervals <- df_intervals %>% 
+  group_by(PX_ID) %>%
+  mutate(dialysis_time = case_when(
+    row_number() == 3 & counts == 3 ~ as.numeric(time_on_list - 
+                                                   (CAN_DIAL_DT - min_list_date),
+                                                 units = 'days'),
+    TRUE ~ dialysis_time_at_list))
+  
+
+
+df_intervals <- subset(df_intervals, !is.na(df_intervals$time))
+df_intervals$dialysis_time_at_list[df_intervals$dialysis_time_at_list < 0] <- 0
+```
+
+
+---------------------------------------
+
+
+# Recalculate EPTS and map
+```{r, warning=F, comment=NA}
+df_intervals <- df_intervals %>%
+  select(PX_ID, age, dialysis, previous_TX, dialysis_time, diabetes) %>%
+  mutate(age = as.numeric(age),
+         dialysis_time = as.numeric(dialysis_time),
+         diabetes = as.numeric(diabetes))
+
+
+df_intervals <- df_intervals %>% 
+  mutate(raw_epts = 
+           0.047*pmax(age - 25, 0) - 
+           0.015*(diabetes==1)*pmax(age - 25, 0) +
+           0.398*(previous_TX==1) - 0.237*(diabetes==1)*(previous_TX==1) +
+           0.315*log(dialysis_time + 1) - 0.099*(diabetes==1)*log(dialysis_time + 1) +
+           0.130*(dialysis_time == 0) - 0.348*(diabetes==1)*(dialysis_time == 0) +  
+           1.262*(diabetes==1))
+
+df_intervals <- df_intervals %>%
+  mutate(percentile_epts = case_when(
+           raw_epts <= 0.01842385502984 ~ 0,
+           raw_epts <= 0.23587063655031 ~ 1,
+           raw_epts <= 0.41885215605749 ~ 2,
+           raw_epts <= 0.52800000000000 ~ 3,
+           raw_epts <= 0.62852561015766 ~ 4,
+           
+           raw_epts <= 0.71352703627652 ~ 5,
+           raw_epts <= 0.79220296573099 ~ 6,
+           raw_epts <= 0.86714433496842 ~ 7,
+           raw_epts <= 0.93047980835044 ~ 8,
+           raw_epts <= 0.99391854893908 ~ 9,
+           
+           raw_epts <= 1.05598976270380 ~ 10,
+           raw_epts <= 1.11434794060852 ~ 11,
+           raw_epts <= 1.17045574165807 ~ 12,
+           raw_epts <= 1.22030049020253 ~ 13,
+           raw_epts <= 1.27212500074301 ~ 14,
+           
+           raw_epts <= 1.31913766912690 ~ 15,
+           raw_epts <= 1.36438535249829 ~ 16,
+           raw_epts <= 1.41168240930869 ~ 17,
+           raw_epts <= 1.45433196440794 ~ 18,
+           raw_epts <= 1.49473716632444 ~ 19,
+           
+           raw_epts <= 1.53514236824093 ~ 20,
+           raw_epts <= 1.57300507228037 ~ 21,
+           raw_epts <= 1.60810335386721 ~ 22,
+           raw_epts <= 1.64297604380561 ~ 23,
+           raw_epts <= 1.67354110859117 ~ 24,
+           
+           raw_epts <= 1.70255373032170 ~ 25,
+           raw_epts <= 1.73150650239562 ~ 26,
+           raw_epts <= 1.75869376757638 ~ 27,
+           raw_epts <= 1.78477960301164 ~ 28,
+           raw_epts <= 1.81180219028063 ~ 29,
+           
+           raw_epts <= 1.83683495289066 ~ 30,
+           raw_epts <= 1.86060232717317 ~ 31,
+           raw_epts <= 1.88375164234518 ~ 32,
+           raw_epts <= 1.90727234572108 ~ 33,
+           raw_epts <= 1.92941067761807 ~ 34,
+           
+           raw_epts <= 1.95149964313427 ~ 35,
+           raw_epts <= 1.97370841889117 ~ 36,
+           raw_epts <= 1.99414162335253 ~ 37,
+           raw_epts <= 2.01486542476192 ~ 38,
+           raw_epts <= 2.03323308735222 ~ 39,
+           
+           raw_epts <= 2.05397604380561 ~ 40,
+           raw_epts <= 2.07327619854998 ~ 41,
+           raw_epts <= 2.09202182261888 ~ 42,
+           raw_epts <= 2.11055715263518 ~ 43,
+           raw_epts <= 2.12710952613370 ~ 44,
+           
+           raw_epts <= 2.14469472963723 ~ 45,
+           raw_epts <= 2.16206639288159 ~ 46,
+           raw_epts <= 2.17895804742641 ~ 47,
+           raw_epts <= 2.19533620671360 ~ 48,
+           raw_epts <= 2.21202975619422 ~ 49,
+           
+           raw_epts <= 2.22830663928816 ~ 50,
+           raw_epts <= 2.24486516084873 ~ 51,
+           raw_epts <= 2.25934770704997 ~ 52,
+           raw_epts <= 2.27457912196537 ~ 53,
+           raw_epts <= 2.29007370896616 ~ 54,
+           
+           raw_epts <= 2.30555527524319 ~ 55,
+           raw_epts <= 2.32162833675565 ~ 56,
+           raw_epts <= 2.33676297950084 ~ 57,
+           raw_epts <= 2.35264238040105 ~ 58,
+           raw_epts <= 2.36804654346338 ~ 59,
+           
+           raw_epts <= 2.38288012607080 ~ 60,
+           raw_epts <= 2.39744314980323 ~ 61,
+           raw_epts <= 2.41176454483231 ~ 62,
+           raw_epts <= 2.42661080994812 ~ 63,
+           raw_epts <= 2.44143904753026 ~ 64,
+           
+           raw_epts <= 2.45616599664439 ~ 65,
+           raw_epts <= 2.47046406570842 ~ 66,
+           raw_epts <= 2.48541673804140 ~ 67,
+           raw_epts <= 2.50082593655723 ~ 68,
+           raw_epts <= 2.51575906913073 ~ 69,
+           
+           raw_epts <= 2.53179041411307 ~ 70,
+           raw_epts <= 2.54847145496397 ~ 71,
+           raw_epts <= 2.56450211494358 ~ 72,
+           raw_epts <= 2.58056343072585 ~ 73,
+           raw_epts <= 2.59622536132146 ~ 74,
+           
+           raw_epts <= 2.61220575225961 ~ 75,
+           raw_epts <= 2.62980229727812 ~ 76,
+           raw_epts <= 2.64633742797854 ~ 77,
+           raw_epts <= 2.66270836678796 ~ 78,
+           raw_epts <= 2.68071428443369 ~ 79,
+           
+           raw_epts <= 2.69965721597721 ~ 80,
+           raw_epts <= 2.71924640657084 ~ 81,
+           raw_epts <= 2.73853621699103 ~ 82,
+           raw_epts <= 2.75778147760295 ~ 83,
+           raw_epts <= 2.77728756159785 ~ 84,
+           
+           raw_epts <= 2.79719224080293 ~ 85,
+           raw_epts <= 2.81884538728167 ~ 86,
+           raw_epts <= 2.83956718767238 ~ 87,
+           raw_epts <= 2.86117343797221 ~ 88,
+           raw_epts <= 2.88458357309819 ~ 89,
+           
+           raw_epts <= 2.90679669457193 ~ 90,
+           raw_epts <= 2.93187604974332 ~ 91,
+           raw_epts <= 2.95563732458239 ~ 92,
+           raw_epts <= 2.98192663471240 ~ 93,
+           raw_epts <= 3.01041956645050 ~ 94,
+           
+           raw_epts <= 3.04211557588171 ~ 95,
+           raw_epts <= 3.07653689699372 ~ 96,
+           raw_epts <= 3.11838513945413 ~ 97,
+           raw_epts <= 3.17159971150431 ~ 98,
+           raw_epts <= 3.24849418211424 ~ 99,
+           TRUE ~ 100)) 
+  
+## Extra line to remove missings
+df_intervals$percentile_epts[is.na(df_intervals$raw_epts)] <- NA
+```
+
+
+---------------------------------------
+
+
+# Percentage of candidates that drop out of top 20th percentile
+```{r, warning=F, comment=NA}
+df_calc <- subset(df_intervals, df_intervals$percentile_epts > 20)
+
+length(unique(df_calc$PX_ID)) / length(unique(df_top_epts$PX_ID))
 ```
