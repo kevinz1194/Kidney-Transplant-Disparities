@@ -918,9 +918,9 @@ df_intervals <- df_intervals %>%
 df_intervals <- df_intervals %>% 
   group_by(PX_ID) %>%
   mutate(dialysis_time = case_when(
-    row_number() == 3 & counts == 3 ~ as.numeric(time_on_list - 
+    row_number() == 3 & counts == 3 ~ (as.numeric(time_on_list - 
                                                    (CAN_DIAL_DT - min_list_date),
-                                                 units = 'days'),
+                                                 units = 'days')) / 365.25,
     row_number() == 2 & counts == 2 & dialysis == 1 ~ 
       dialysis_time_at_list + (time / 365.25),
     TRUE ~ dialysis_time_at_list))
