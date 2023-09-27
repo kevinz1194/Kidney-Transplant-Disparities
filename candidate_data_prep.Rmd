@@ -941,7 +941,7 @@ df_intervals <- df_intervals %>%
   select(PX_ID, age, dialysis, previous_TX, dialysis_time, diabetes) %>%
   mutate(age = as.numeric(age),
          dialysis_time = as.numeric(dialysis_time),
-         diabetes = as.numeric(diabetes))
+         diabetes = as.numeric(as.character(diabetes)))
 
 
 df_intervals <- df_intervals %>% 
