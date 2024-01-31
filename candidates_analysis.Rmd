@@ -7,14 +7,14 @@ output:
 authors: Kevin Zhang, Nour Asfour, and William Parker
 ---
 
-<!-- All adult donor candidates/Table 1 (Line 55) -->
-<!-- Average EPTS by age group and race, all donors/Figure 1A (Line 82) -->
-<!-- Average EPTS by age group and race, all donors, table (Line 129)  -->
-<!-- Proportion of candidates with EPTS < 20 by age group and race, all donors/Figure 1B (Line 159)  -->
+<!-- All adult donor candidates/Table 1 (Line 53) -->
+<!-- Average EPTS by age group and race, all donors/Figure 1A (Line 80) -->
+<!-- Average EPTS by age group and race, all donors, table (Line 128)  -->
+<!-- Proportion of candidates with EPTS < 20 by age group and race, all donors/Figure 1B (Line 158)  -->
 <!-- Logistic regression for EPTS, includes living donors (Line 239) -->
-<!-- Survival plots for competing risks/Figure 2 (Line 268) -->
-<!-- Top 20% KDPI for top 20% EPTS only (Line 371) -->
-<!-- Adjusted results for age (Line 403) -->
+<!-- Survival plots for competing risks/Figure 2 (Line 253) -->
+<!-- Top 20% KDPI for top 20% EPTS only (Line 381) -->
+<!-- Adjusted results for age (Line 417) -->
 
 
 ```{r, include=F, warning=F, echo=F, message=F, comment=NA}
@@ -95,18 +95,18 @@ df_cand_kipa_fig1 <-
   
   filter(race == 'White' | race == 'Black_AA' | race == 'Hispanic' | race == 'Asian') %>%
   
-  mutate(race = factor(race, levels=c('Black_AA', 'Hispanic', 'White', 'Asian')))
+  mutate(race = factor(race, levels=c('White', 'Black_AA', 'Hispanic', 'Asian')))
 
 
 ggplot(df_cand_kipa_fig1, 
        aes(x = age_group, y = mean_t, 
            color = race, group = race)) +
-  geom_point(size=1.25) + geom_line(size=1.05) +
-  geom_errorbar(aes(ymin=low_ci_mean, ymax=up_ci_mean), width=0.5, size=0.5) + 
+  geom_point(size=1.25) + geom_line(size=1.25) +
+  geom_errorbar(aes(ymin=low_ci_mean, ymax=up_ci_mean), width=0.15, size=0.25) + 
   theme_bw() + 
-  xlab('Age Group (years)') + ylab('Average EPTS Percentile') + labs(col='Race') +
+  xlab('Age Group (years)') + ylab('Average EPTS Score') + labs(col='Race') +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
-                     labels = c('Black or AA', 'Hispanic/Latino', 'White or Caucasian', 'Asian')) +
+                     labels = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 14, margin = margin(t=5)), 
@@ -115,6 +115,7 @@ ggplot(df_cand_kipa_fig1,
     axis.text.y = element_text(size = 13, margin = margin(r=5)),
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 13),
+    legend.position = 'bottom', legend.direction = 'horizontal',
     plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) 
 
 
@@ -186,12 +187,12 @@ df_cand_kipa_fig2 <- df_cand_kipa %>%
 ggplot(df_cand_kipa_fig2, 
        aes(x = age_group, y = prop, 
            color = race, group = race)) +
-  geom_point(size=1.25) + geom_line(size=1.05) +
-  geom_errorbar(aes(ymin=ci_lower, ymax=ci_higher), width=0.5, size=0.5) + 
+  geom_point(size=1.25) + geom_line(size=1.25) +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_higher), width=0.15, size=0.25) + 
   theme_bw() + 
   xlab('Age Group (years)') + ylab('Proportion in Top 20 EPTS Percentile') + labs(col='Race') +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
+                     labels = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
  theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 14, margin = margin(t=5)), 
@@ -200,6 +201,7 @@ ggplot(df_cand_kipa_fig2,
     axis.text.y = element_text(size = 13, margin = margin(r=5)),
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 13),
+    legend.position = 'bottom', legend.direction = 'horizontal',
     plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) 
 
 
@@ -320,15 +322,18 @@ df_cand_kipa_cmp_all_race <- df_cand_kipa %>%
 
 #### Plot of Death 
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
-death_cuminc <- cuminc(Surv(wait_time / 365.25, status_death) ~ race, data = df_cand_kipa_cmp) 
+df_cand_kipa_cmp$wait_time <- df_cand_kipa_cmp$wait_time / 365.25
+df_cand_kipa_cmp$race <- factor(df_cand_kipa_cmp$race, levels = c('White', 'Black_AA', 'Hispanic', 'Asian'))
+
+death_cuminc <- cuminc(Surv(wait_time, status_death) ~ race, data = df_cand_kipa_cmp) 
 ggcuminc(death_cuminc, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative Incidence') +
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
-  theme_bw() + add_risktable() +
+                     labels = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
+  theme_bw() + 
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 14, margin = margin(t=5)), 
@@ -343,14 +348,17 @@ ggcuminc(death_cuminc,
 
 #### Plot of Top 20% Transplant
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
-top20_cuminc <- cuminc(Surv(wait_time / 365.25, status_top20) ~ race, data = df_cand_kipa_cmp) 
+top20_cuminc <- cuminc(Surv(wait_time, status_top20) ~ race, data = df_cand_kipa_cmp) 
+
 ggcuminc(top20_cuminc, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) +
-  scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
-                     labels = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
+  scale_x_continuous(limits=c(0,5.46), breaks=seq(0,5,1)) +
+  scale_color_manual(
+    limits = c('White', 'Black_AA', 'Hispanic', 'Asian'),
+    values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
+    labels = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
   theme_bw() + 
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -359,8 +367,12 @@ ggcuminc(top20_cuminc,
     axis.title.y = element_text(size = 14, margin = margin(r=5)),
     axis.text.y = element_text(size = 13, margin = margin(r=5)),
     legend.title = element_text(size = 14),
-    legend.text = element_text(size = 13),
-    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+    legend.text = element_text(size = 13), legend.position = 'bottom',
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) +
+  annotate("text", x = 5.45, y= 0.127, color = 'firebrick', label = '12%') +
+  annotate("text", x = 5.45, y= 0.137, color = '#009E73', label = '12%') +
+  annotate("text", x = 5.45, y= 0.118, color = '#56B4E9', label = '11%') +
+  annotate("text", x = 5.45, y= 0.104, color = '#CC79A7', label = '10%')
 ```
 
 ----------------------
@@ -371,12 +383,12 @@ ggcuminc(top20_cuminc,
 df_cand_kipa_top_epts <- subset(df_cand_kipa_cmp, df_cand_kipa_cmp$top_percentile_epts == '1')
 
 ### Plot of Top 20% Transplant
-top20_cuminc_epts <- cuminc(Surv(wait_time / 365.25, status_top20) ~ race, data = df_cand_kipa_top_epts) 
+top20_cuminc_epts <- cuminc(Surv(wait_time, status_top20) ~ race, data = df_cand_kipa_top_epts) 
 ggcuminc(top20_cuminc, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) +
+  xlim(0, 5.2) +
   ggtitle('Cumulative Incidence of Top 20% KDPI in Top 20% EPTS Patients with Death and Delisting as Competing Risks') +
   xlim(0, 5) +
   scale_color_manual(values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
@@ -390,28 +402,65 @@ ggcuminc(top20_cuminc,
     axis.text.y = element_text(size = 13, margin = margin(r=5)),
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 13),
-    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) 
+```
 
+
+```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
+crr(Surv(wait_time, status_top20) ~ race + age_group, data = df_cand_kipa_top_epts) %>%
+   tbl_regression(exp = T)
 ```
 
 ----------------------
 
 
 ### Adjusted results for age: plots
-Note: Legends and titles must be manually added.
 ```{r, warning=F, echo=F, comment=NA, message=F, fig.align='center', fig.width=10, fig.height=10}
-cuminc_age_adjusted <- cuminc(Surv(wait_time / 365.25, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race)
+df_cand_kipa_cmp_all_race$wait_time <- df_cand_kipa_cmp_all_race$wait_time / 365.25
+cuminc_age_adjusted <- cuminc(Surv(wait_time, status_top20) ~ race + age_group, data = df_cand_kipa_cmp_all_race)
 
 plot_30_39 <- ggcuminc(cuminc_age_adjusted, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  scale_x_continuous(limits=c(0,5.46), breaks=seq(0,5,1)) + ylim(0, 0.5) +
   theme_bw() + 
-  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
-                                  'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
-                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
-                                rep(alpha('white', 0), 7), rep(alpha('white', 0), 7)), guide = 'none') +
+  scale_color_manual(limits = c('White, 18-24', 'Black_AA, 18-24', 'Hispanic, 18-24',
+                                'Asian, 18-24', 'American_Indian, 18-24', 
+                                'Pacific_Islander, 18-24', 'Other, 18-24',
+                                
+                                'White, 25-29', 'Black_AA, 25-29', 'Hispanic, 25-29',
+                                'Asian, 25-29', 'American_Indian, 25-29', 
+                                'Pacific_Islander, 25-29', 'Other, 25-29',
+                                
+                                'White, 30-39', 'Black_AA, 30-39', 'Hispanic, 30-39',
+                                'Asian, 30-39', 'American_Indian, 30-39', 
+                                'Pacific_Islander, 30-39', 'Other, 30-39',
+                                
+                                'White, 40-49', 'Black_AA, 40-49', 'Hispanic, 40-49',
+                                'Asian, 40-49', 'American_Indian, 40-49', 
+                                'Pacific_Islander, 40-49', 'Other, 40-49',    
+                                
+                                'White, 50-59', 'Black_AA, 50-59', 'Hispanic, 50-59',
+                                'Asian, 50-59', 'American_Indian, 50-59', 
+                                'Pacific_Islander, 50-59', 'Other, 50-59', 
+                                
+                                'White, 60-69', 'Black_AA, 60-69', 'Hispanic, 60-69',
+                                'Asian, 60-69', 'American_Indian, 60-69', 
+                                'Pacific_Islander, 60-69', 'Other, 60-69', 
+                                
+                                'White, >70', 'Black_AA, >70', 'Hispanic, >70',
+                                'Asian, >70', 'American_Indian, >70', 
+                                'Pacific_Islander, >70', 'Other, >70'),
+                     
+                                values = c(rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), 
+                                'firebrick', '#009E73', '#56B4E9', '#CC79A7', 
+                                rep(alpha('white', 0), 3),
+                                rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7), 
+                                rep(alpha('white', 0), 7)), guide = 'none') +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     axis.title.x = element_text(size = 14, margin = margin(t=5)), 
@@ -420,16 +469,48 @@ plot_30_39 <- ggcuminc(cuminc_age_adjusted,
     axis.text.y = element_text(size = 13, margin = margin(r=5)),
     legend.title = element_blank(),
     legend.text = element_blank(),
-    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) +
+  annotate("text", x = 5.36, y= 0.321, color = 'firebrick', label = '28%') +
+  annotate("text", x = 5.36, y= 0.283, color = '#009E73', label = '25%') +
+  annotate("text", x = 5.36, y= 0.231, color = '#56B4E9', label = '23%') +
+  annotate("text", x = 4.23, y= 0.261, color = '#CC79A7', label = '25%')
 
 
 plot_40_49 <- ggcuminc(cuminc_age_adjusted, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  xlim(0, 5.46) + ylim(0, 0.5) +
   theme_bw() + 
-  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+  scale_color_manual(limits = c('White, 18-24', 'Black_AA, 18-24', 'Hispanic, 18-24',
+                                'Asian, 18-24', 'American_Indian, 18-24', 
+                                'Pacific_Islander, 18-24', 'Other, 18-24',
+                                
+                                'White, 25-29', 'Black_AA, 25-29', 'Hispanic, 25-29',
+                                'Asian, 25-29', 'American_Indian, 25-29', 
+                                'Pacific_Islander, 25-29', 'Other, 25-29',
+                                
+                                'White, 30-39', 'Black_AA, 30-39', 'Hispanic, 30-39',
+                                'Asian, 30-39', 'American_Indian, 30-39', 
+                                'Pacific_Islander, 30-39', 'Other, 30-39',
+                                
+                                'White, 40-49', 'Black_AA, 40-49', 'Hispanic, 40-49',
+                                'Asian, 40-49', 'American_Indian, 40-49', 
+                                'Pacific_Islander, 40-49', 'Other, 40-49',    
+                                
+                                'White, 50-59', 'Black_AA, 50-59', 'Hispanic, 50-59',
+                                'Asian, 50-59', 'American_Indian, 50-59', 
+                                'Pacific_Islander, 50-59', 'Other, 50-59', 
+                                
+                                'White, 60-69', 'Black_AA, 60-69', 'Hispanic, 60-69',
+                                'Asian, 60-69', 'American_Indian, 60-69', 
+                                'Pacific_Islander, 60-69', 'Other, 60-69', 
+                                
+                                'White, >70', 'Black_AA, >70', 'Hispanic, >70',
+                                'Asian, >70', 'American_Indian, >70', 
+                                'Pacific_Islander, >70', 'Other, >70'),
+                     
+                     values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), 
                                 'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
                                 rep(alpha('white', 0), 7), 
@@ -443,16 +524,48 @@ plot_40_49 <- ggcuminc(cuminc_age_adjusted,
     axis.text.y = element_blank(),
     legend.title = element_blank(),
     legend.text = element_blank(),
-    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) +
+  annotate("text", x = 5.40, y= 0.195, color = 'firebrick', label = '17%') +
+  annotate("text", x = 5.40, y= 0.133, color = '#009E73', label = '13%') +
+  annotate("text", x = 5.40, y= 0.107, color = '#56B4E9', label = '10%') +
+  annotate("text", x = 5.25, y= 0.153, color = '#CC79A7', label = '13%')  
 
 
 plot_50_59 <- ggcuminc(cuminc_age_adjusted, 
          outcome = '1',
          size = 1.2) + 
   labs(x = 'Time (years)', y = 'Cumulative incidence') +
-  xlim(0, 5) + ylim(0, 0.5) +
+  xlim(0, 5.46) + ylim(0, 0.5) +
   theme_bw() + 
-  scale_color_manual(values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
+  scale_color_manual(limits = c('White, 18-24', 'Black_AA, 18-24', 'Hispanic, 18-24',
+                                'Asian, 18-24', 'American_Indian, 18-24', 
+                                'Pacific_Islander, 18-24', 'Other, 18-24',
+                                
+                                'White, 25-29', 'Black_AA, 25-29', 'Hispanic, 25-29',
+                                'Asian, 25-29', 'American_Indian, 25-29', 
+                                'Pacific_Islander, 25-29', 'Other, 25-29',
+                                
+                                'White, 30-39', 'Black_AA, 30-39', 'Hispanic, 30-39',
+                                'Asian, 30-39', 'American_Indian, 30-39', 
+                                'Pacific_Islander, 30-39', 'Other, 30-39',
+                                
+                                'White, 40-49', 'Black_AA, 40-49', 'Hispanic, 40-49',
+                                'Asian, 40-49', 'American_Indian, 40-49', 
+                                'Pacific_Islander, 40-49', 'Other, 40-49',    
+                                
+                                'White, 50-59', 'Black_AA, 50-59', 'Hispanic, 50-59',
+                                'Asian, 50-59', 'American_Indian, 50-59', 
+                                'Pacific_Islander, 50-59', 'Other, 50-59', 
+                                
+                                'White, 60-69', 'Black_AA, 60-69', 'Hispanic, 60-69',
+                                'Asian, 60-69', 'American_Indian, 60-69', 
+                                'Pacific_Islander, 60-69', 'Other, 60-69', 
+                                
+                                'White, >70', 'Black_AA, >70', 'Hispanic, >70',
+                                'Asian, >70', 'American_Indian, >70', 
+                                'Pacific_Islander, >70', 'Other, >70'),
+                                
+                                values = c(rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 rep(alpha('white', 0), 7), rep(alpha('white', 0), 7), 
                                 'firebrick', '#009E73', '#56B4E9', '#CC79A7', rep(alpha('white', 0), 3),
                                 rep(alpha('white', 0), 7), rep(alpha('white', 0), 7)), guide = 'none') +
@@ -465,12 +578,30 @@ plot_50_59 <- ggcuminc(cuminc_age_adjusted,
     axis.text.y = element_blank(),
     legend.title = element_blank(),
     legend.text = element_blank(),
-    plot.title = element_text(face = 'bold', size = 16, hjust=0.5))   
+    plot.title = element_text(face = 'bold', size = 16, hjust=0.5)) +
+  annotate("text", x = 5.40, y= 0.111, color = 'firebrick', label = '10%') +
+  annotate("text", x = 5.45, y= 0.092, color = '#009E73', label = '8%') +
+  annotate("text", x = 5.45, y= 0.070, color = '#56B4E9', label = '6%') +
+  annotate("text", x = 5.45, y= 0.046, color = '#CC79A7', label = '5%')  
 
 
+p4 <- ggcuminc(top20_cuminc, 
+         outcome = '1',
+         size = 1.2) + 
+  scale_x_continuous(limits=c(0,5.46), breaks=seq(0,5,1)) +
+  scale_color_manual(
+    limits = c('White', 'Black_AA', 'Hispanic', 'Asian'),
+    values = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'),
+    labels = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian')) +
+  theme_bw() + 
+  theme(legend.title = element_text(size = 14),
+    legend.text = element_text(size = 13)) 
 
+prow <- cowplot::plot_grid(plot_30_39, plot_40_49, plot_50_59, align = 'h', ncol = 3)
+legend_b <- get_legend(
+  p4 + guides(color = guide_legend(nrow = 1)) + theme(legend.position = 'bottom'))
 
-cowplot::plot_grid(plot_30_39, plot_40_49, plot_50_59, align = 'h', ncol = 3)
+cowplot::plot_grid(prow, legend_b, ncol = 1, rel_heights = c(1, .1))
 ```
 
 ----------------------
