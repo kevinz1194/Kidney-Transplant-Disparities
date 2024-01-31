@@ -85,6 +85,8 @@ Updated 3/15/23: Sections removed to contain only necessary code for article.
 
 Updated 3/19/23: Added sensitivity analysis with top 20% KDPI filter.
 
+Updated 1/13/24: Minor typos corrected.
+
 Updated 5/12/23: Updated to be compatible with the new code.
 
 Updated 5/15/23: Added additional analyses for general death.
