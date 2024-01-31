@@ -61,6 +61,8 @@ Updated 5/12/23: Updated to be compatible with the new code.
 
 Updated 5/23/23: Updated with new plots and tables.
 
+Updated 1/13/24: Plots reworked to fit journal guidelines.
+
 
 ### 5. candidates_analysis_sensitivity.Rmd 
 Candidate analyses on the two alternative candidate datasets.
