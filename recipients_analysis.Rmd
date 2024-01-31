@@ -11,11 +11,13 @@ authors: Kevin Zhang, Nour Asfour, and William Parker
 <!-- KM curve for death with top EPTS < 20 by race (Line 86) -->
 <!-- KM curve for death with top EPTS < 20 by race, no 2015 (Line 121) -->
 <!-- KM curve for death with functioning graft with top EPTS < 20 by race/Figure 3 (Line 152) -->
-<!-- KM curve for death with functioning graft with top EPTS < 20 by race, no 2015 (Line 179) -->
-<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race (Line 206) -->
-<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race, no 2015 (Line 241) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 272) -->
-<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, top KDPI adjust (Line 312) -->
+<!-- KM curve for death with functioning graft with top EPTS < 20 by race, no 2015 (Line 177) -->
+<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race (Line 204) -->
+<!-- KM curve for death with functioning graft with EPTS < 20 and top 20% KDPI by race, 
+     no 2015 (Line 239) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk (Line 270) -->
+<!-- Cumulative incidence of death with function in top EPTS, graft failure competing risk, 
+     top KDPI adjust (Line 310) -->
 
 
 
@@ -153,20 +155,18 @@ fit_top20 <- survival::survfit(Surv(time_to_death_function / 365.65, death_with_
                                data = df_recipients_top20)
 
 p <- ggsurvplot(fit_top20, data = df_recipients_top20, size = 1.2, censor = F,
-                conf.int = T, pval = T, xlab = 'Time in Years', ylab = 'Probability', 
-                legend = 'right',
-                xlim = c(0,5), ylim = c(0.9, 1), pval.coord = c(4, 0.92),
-                risk.table = T,        
-                risk.table.col = 'strata',
-                risk.table.fontsize = c(3.5),
+                conf.int = T, conf.int.alpha = 0.1, 
+                pval = F, xlab = 'Time in Years', ylab = 'Survival Probability', 
+                legend = 'right', legend.title = 'Race',
+                xlim = c(0,5), ylim = c(0.95, 1), break.y.by=0.01,
+                risk.table = F,        
                 font.main = c(16, 'bold'),
                 font.x = c(16),
-                font.y = c(16),
-                font.tickslab = c(14, 'bold'),
-                legend.labs = c('White or Caucasian', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
+                font.y = c(16), font.legend=c(16),
+                font.tickslab = c(14),
+                legend.labs = c('White', 'Black or AA', 'Hispanic/Latino', 'Asian'),   
                 ggtheme = theme_bw(),
                 palette = c('firebrick', '#009E73', '#56B4E9', '#CC79A7'))
-p$table <- p$table + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 p$plot <- p$plot + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 p
 ```
